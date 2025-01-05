@@ -1,0 +1,7 @@
+CompileFlags:
+  Add:
+    - "-Wall"
+    - "-Wextra"
+    - "-fsanitize=address,undefined"
+    - "-std=c99"
+    - "-I../src/"
