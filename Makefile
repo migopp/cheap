@@ -1,6 +1,6 @@
 CC      = cc
 FLAGS   = -Wall -Wextra -O0 -g -std=c99 \
-		  -fsanitize=undefined \
+		  -fsanitize=undefined
 
 SRC_DIR     = src
 BUMP_DIR    = $(SRC_DIR)/bump
