@@ -1,6 +1,7 @@
 #define CHEAP_BUMP_SIZE 1 << 5
 
 #include "bump/bump.h"
+#include "assert.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -13,7 +14,9 @@ int main() {
 
 	// Allocate
 	uint8_t *f = (uint8_t *)bump_malloc(sizeof(uint8_t));
+	ASSERT(f != NULL);
 	uint8_t *n = (uint8_t *)bump_malloc(sizeof(uint8_t));
+	ASSERT(n != NULL);
 	// If we bump, consecutive allocations should be
 	// neighboring
 	//

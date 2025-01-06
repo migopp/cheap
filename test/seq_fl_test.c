@@ -1,6 +1,7 @@
 #define CHEAP_FL_SIZE 1 << 5
 
 #include "fl/fl.h"
+#include "assert.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -13,12 +14,14 @@ int main() {
 
 	// Allocate
 	uint8_t *f = (uint8_t *)fl_malloc(sizeof(uint8_t));
+	ASSERT(f != NULL);
 	uint8_t *n = (uint8_t *)fl_malloc(sizeof(uint8_t));
+	ASSERT(n != NULL);
 	// In this free list impl, successive allocations
 	// should be neighboring. Let's test that.
 	//
 	// So there should be 1 byte between `f` and `n`.
-	if (/*f != n - 1*/ f != n) {
+	if (f != n - 1) {
 		fprintf(stderr, "%p != %p - 1\n", f, n);
 	}
 
