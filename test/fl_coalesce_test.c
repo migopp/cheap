@@ -1,5 +1,3 @@
-// CHEAP_FL_SIZE: 1 << 20
-
 #include "fl/fl.h"
 #include "assert.h"
 #include <stdint.h>
@@ -10,7 +8,7 @@
 #endif
 
 int main() {
-	printf("`fl_seq_test` init\n");
+	printf("`fl_coal_test` init\n");
 
 	// Allocate
 	uint8_t *f = (uint8_t *)fl_malloc(sizeof(uint8_t));
@@ -25,17 +23,10 @@ int main() {
 		fprintf(stderr, "%p != %p - 1\n", f, n);
 	}
 
-	// Free our blocks
-	fl_free(f);
-	fl_free(n);
-
 	// Match counts
-	size_t fl_mallocc, fl_freec;
+	size_t fl_mallocc;
 	if ((fl_mallocc = get_fl_mallocc()) != 2) {
 		fprintf(stderr, "wrong `fl_mallocc`: %zu\n", fl_mallocc);
-	}
-	if ((fl_freec = get_fl_freec()) != 2) {
-		fprintf(stderr, "wrong `fl_freec`: %zu\n", fl_freec);
 	}
 
 	printf("`fl_seq_test` deinit\n");

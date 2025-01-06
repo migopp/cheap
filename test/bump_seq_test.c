@@ -1,3 +1,5 @@
+// CHEAP_BUMP_SIZE: 1 << 10
+
 #include "bump/bump.h"
 #include "assert.h"
 #include <stdint.h>
