@@ -3,4 +3,3 @@ CompileFlags:
     - "-Wall"
     - "-Wextra"
     - "-std=c99"
-    - "-I../src/"
