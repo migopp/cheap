@@ -1,5 +1,3 @@
-#define CHEAP_FL_SIZE 1 << 5
-
 #include "fl/fl.h"
 #include "assert.h"
 #include <stdint.h>
@@ -10,7 +8,7 @@
 #endif
 
 int main() {
-	printf("`simple_fl_test` init\n");
+	printf("`fl_seq_test` init\n");
 
 	// Allocate
 	uint8_t *f = (uint8_t *)fl_malloc(sizeof(uint8_t));
@@ -31,5 +29,5 @@ int main() {
 		fprintf(stderr, "wrong `fl_mallocc`: %zu\n", fl_mallocc);
 	}
 
-	printf("`simple_fl_test` deinit\n");
+	printf("`fl_seq_test` deinit\n");
 }

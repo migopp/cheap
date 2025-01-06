@@ -1,15 +1,20 @@
 #include "bump.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 
 uint8_t cheap_bump[CHEAP_BUMP_SIZE];
 size_t cheap_bump_idx = 0;
 size_t cheap_bump_mallocc = 0;
 
 void *bump_malloc(size_t size) {
-	cheap_bump_mallocc++;
+	// Alas, for the bump allocator this comes too soon!
+	if (cheap_bump_idx + size > CHEAP_BUMP_SIZE) return NULL;
+
+	// Bump it.
 	void *ptr = (void *)&cheap_bump[cheap_bump_idx];
 	cheap_bump_idx += size;
+	cheap_bump_mallocc++;
 	return ptr;
 }
 

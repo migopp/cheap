@@ -1,5 +1,3 @@
-#define CHEAP_BUMP_SIZE 1 << 5
-
 #include "bump/bump.h"
 #include "assert.h"
 #include <stdint.h>
@@ -10,7 +8,7 @@
 #endif
 
 int main() {
-	printf("`simple_bump_test` init\n");
+	printf("`bump_seq_test` init\n");
 
 	// Allocate
 	uint8_t *f = (uint8_t *)bump_malloc(sizeof(uint8_t));
@@ -31,5 +29,5 @@ int main() {
 		fprintf(stderr, "wrong `bump_mallocc`: %zu\n", bump_mallocc);
 	}
 
-	printf("`simple_bump_test` deinit\n");
+	printf("`bump_seq_test` deinit\n");
 }
