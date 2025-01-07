@@ -4,9 +4,6 @@
 #include <sys/types.h>
 #include <stdbool.h>
 
-// TODO: REMOVE
-#include <stdio.h>
-
 uint8_t cheap_fl[CHEAP_FL_SIZE];
 size_t cheap_fl_mallocc = 0;
 size_t cheap_fl_freec = 0;
@@ -131,12 +128,10 @@ void *fl_malloc(size_t size) {
 void fl_free(void *ptr) {
 	// Validate
 	uint8_t *n_ptr = (uint8_t *)ptr;
-	if (!fl_in_bounds(n_ptr)) return;
-	// TODO:
-	// 		- Check if metadata is in heap range
-	// 		- Ensure that size is negative
-
 	fl_head_md *head = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
+	if (!fl_in_bounds(n_ptr) || !fl_in_bounds(head) || fl_is_free(head)) return;
+
+	// Mark as free
 	head->flb_size = -head->flb_size;
 
 	// Check for coalesce
