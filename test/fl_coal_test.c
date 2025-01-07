@@ -16,9 +16,9 @@ int main() {
 	// Allocate the entire heap
 	//
 	// This should leave no room remaining
-	uint8_t *f = (uint8_t *)fl_malloc(((1 << 10) - 24) * sizeof(uint8_t));
+	uint8_t *f = (uint8_t *)fl_malloc(((1 << 19) - 24) * sizeof(uint8_t));
 	ASSERT(f != NULL);
-	uint8_t *n = (uint8_t *)fl_malloc(((1 << 10) - 24) * sizeof(uint8_t));
+	uint8_t *n = (uint8_t *)fl_malloc(((1 << 19) - 24) * sizeof(uint8_t));
 	ASSERT(n != NULL);
 
 	// Now, if we allocate again it should fail
@@ -30,6 +30,7 @@ int main() {
 	fl_free(f);
 	fl_free(n);
 	n = (uint8_t *)fl_malloc(((1 << 20) - 24) * sizeof(uint8_t));
+	ASSERT(n != NULL);
 	ASSERT(f == n);
 
 	// Match counts

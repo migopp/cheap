@@ -1,6 +1,4 @@
-# cheap
-
-## Testing
+# Testing
 
 To run all tests,
 

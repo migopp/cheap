@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <stdbool.h>
 
 // TODO: REMOVE
 #include <stdio.h>
@@ -41,6 +42,18 @@ size_t fl_frame_down(size_t addr) {
 size_t fl_frame_up(size_t addr) {
 	return fl_frame_down(addr + CHEAP_FL_FRAME_SIZE - 1);
 }
+
+bool fl_in_bounds_left(void *p) { return p >= (void *)cheap_fl; }
+
+bool fl_in_bounds_right(void *p) {
+	return p < (void *)&cheap_fl[CHEAP_FL_SIZE];
+}
+
+bool fl_in_bounds(void *p) {
+	return fl_in_bounds_left(p) && fl_in_bounds_right(p);
+}
+
+bool fl_is_free(fl_head_md *head) { return head->flb_size > 0; }
 
 void fl_init() {
 	// Head metadata
@@ -110,35 +123,54 @@ void *fl_malloc(size_t size) {
 	fit->flb_size = -fit->flb_size;
 	fit->flb_next = 0;
 
-	// Increment count and hand over
+	// Increment malloc count and hand over
 	cheap_fl_mallocc++;
-	return (void *)(fit + sizeof(fl_head_md));
+	return (void *)(fit + 1);
 }
 
 void fl_free(void *ptr) {
 	// Validate
 	uint8_t *n_ptr = (uint8_t *)ptr;
-	if (n_ptr < cheap_fl || n_ptr >= &cheap_fl[CHEAP_FL_SIZE]) return;
+	if (!fl_in_bounds(n_ptr)) return;
 	// TODO:
 	// 		- Check if metadata is in heap range
 	// 		- Ensure that size is negative
 
-	// Check for empty free list
-	fl_head_md *o_first_flb = first_flb;
-	fl_head_md *n_first_flb = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
-	if (o_first_flb == NULL) {
-		first_flb = n_first_flb;
-		cheap_fl_freec++;
-		return;
+	fl_head_md *head = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
+	head->flb_size = -head->flb_size;
+
+	// Check for coalesce
+	fl_tail_md *left_tail =
+		(fl_tail_md *)((uint8_t *)head - sizeof(fl_tail_md));
+	if (fl_in_bounds_left(left_tail) &&
+		fl_in_bounds_left(left_tail->flb_head) &&
+		fl_is_free(left_tail->flb_head)) {
+		fl_head_md *left_head = left_tail->flb_head;
+		// Merge left
+		left_head->flb_size += head->flb_size + CHEAP_FL_MD_SIZE;
+		head = left_head;
+		fl_tail_md *n_tail =
+			(fl_tail_md *)(head + head->flb_size + sizeof(fl_head_md));
+		n_tail->flb_head = head;
+	}
+	fl_head_md *right_head =
+		(fl_head_md *)((uint8_t *)head + head->flb_size + CHEAP_FL_MD_SIZE);
+	if (fl_in_bounds_right(right_head) && fl_is_free(right_head)) {
+		// Merge right
+		head->flb_size += right_head->flb_size + CHEAP_FL_MD_SIZE;
+		fl_tail_md *n_tail =
+			(fl_tail_md *)(head + head->flb_size + sizeof(fl_head_md));
+		n_tail->flb_head = head;
 	}
 
-	// TODO: Check for coalesce
-
 	// Append to the free list
-	n_first_flb->flb_next = o_first_flb;
-	first_flb = n_first_flb;
+	fl_head_md *o_first_flb = first_flb;
+	if (o_first_flb != NULL) {
+		head->flb_next = o_first_flb;
+	}
+	first_flb = head;
 
-	// Increment count
+	// Increment free count
 	cheap_fl_freec++;
 }
 
