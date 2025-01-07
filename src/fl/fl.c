@@ -1,6 +1,6 @@
 #include "fl.h"
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 // TODO: REMOVE
@@ -77,16 +77,10 @@ void *fl_malloc(size_t size) {
 	ssize_t split_size = fit->flb_size - size - CHEAP_FL_MD_SIZE;
 	if (split_size >= CHEAP_FL_SPLIT_MIN) {
 		// Get split locations
-		printf("size = %zu\n", size);
-		printf("md size = %zu\n", CHEAP_FL_MD_SIZE);
 		uint8_t *b_fit = (uint8_t *)fit;
-		printf("b_fit = %p\n", b_fit);
 		uint8_t *this_end = b_fit + sizeof(fl_head_md) + size;
-		printf("this_end = %p\n", this_end);
 		uint8_t *split_start = this_end + sizeof(fl_tail_md);
-		printf("split_start = %p\n", split_start);
 		uint8_t *split_end = b_fit + sizeof(fl_head_md) + fit->flb_size;
-		printf("split_end = %p\n", split_end);
 
 		// Set metadata for split block
 		fl_head_md *split_start_md = (fl_head_md *)split_start;
@@ -98,6 +92,7 @@ void *fl_malloc(size_t size) {
 		// Set metadata for return block
 		fl_tail_md *this_end_md = (fl_tail_md *)this_end;
 		fit->flb_size = size;
+		fit->flb_next = split_start_md;
 		this_end_md->flb_head = fit;
 	}
 
@@ -111,9 +106,12 @@ void *fl_malloc(size_t size) {
 		p->flb_next = fit->flb_next;
 	}
 
-	// Set our metadata and hand over
+	// Set metadata
 	fit->flb_size = -fit->flb_size;
 	fit->flb_next = 0;
+
+	// Increment count and hand over
+	cheap_fl_mallocc++;
 	return (void *)(fit + sizeof(fl_head_md));
 }
 
@@ -130,6 +128,7 @@ void fl_free(void *ptr) {
 	fl_head_md *n_first_flb = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
 	if (o_first_flb == NULL) {
 		first_flb = n_first_flb;
+		cheap_fl_freec++;
 		return;
 	}
 
@@ -138,6 +137,9 @@ void fl_free(void *ptr) {
 	// Append to the free list
 	n_first_flb->flb_next = o_first_flb;
 	first_flb = n_first_flb;
+
+	// Increment count
+	cheap_fl_freec++;
 }
 
 size_t get_fl_mallocc() { return cheap_fl_mallocc; }

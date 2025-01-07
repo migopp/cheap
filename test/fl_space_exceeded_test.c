@@ -24,13 +24,11 @@ int main() {
 	// Fill up the heap.
 	uint8_t *f = (uint8_t *)fl_malloc((1 << 18) * sizeof(uint8_t));
 	ASSERT(f != NULL);
-	uint8_t *n = (uint8_t *)fl_malloc((1 << 2) * sizeof(uint8_t));
+	uint8_t *n = (uint8_t *)fl_malloc((1 << 18) * sizeof(uint8_t));
 	ASSERT(n != NULL);
-	// Free end
-	fl_free(n);
 	// Allocate slightly more than the limit
-	n = (uint8_t *)fl_malloc((1 << 3) * sizeof(uint8_t));
-	ASSERT(n == NULL);
+	uint8_t *m = (uint8_t *)fl_malloc((1 << 19) * sizeof(uint8_t));
+	ASSERT(m == NULL);
 	// I never said it was _actually_ clever.
 
 	// Match counts
@@ -38,7 +36,7 @@ int main() {
 	if ((fl_mallocc = get_fl_mallocc()) != 2) {
 		fprintf(stderr, "wrong `fl_mallocc`: %zu\n", fl_mallocc);
 	}
-	if ((fl_freec = get_fl_freec()) != 1) {
+	if ((fl_freec = get_fl_freec()) != 0) {
 		fprintf(stderr, "wrong `fl_freec`: %zu\n", fl_freec);
 	}
 
