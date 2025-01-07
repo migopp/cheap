@@ -2,23 +2,30 @@ CC      = cc
 FLAGS   = -Wall -Wextra -O0 -g -std=c99 \
 		  -fsanitize=undefined
 
-SRC_DIR     = src
-BUMP_DIR    = $(SRC_DIR)/bump
-FL_DIR      = $(SRC_DIR)/fl
-TARGET_DIR  = target
+SRC_DIR    = src
+BUMP_DIR   = $(SRC_DIR)/bump
+FL_DIR     = $(SRC_DIR)/fl
+STACK_DIR  = $(SRC_DIR)/stack
+TARGET_DIR = target
 
-BUMP_C = $(BUMP_DIR)/bump.c
-BUMP_O = $(TARGET_DIR)/bump.o
-FL_C = $(FL_DIR)/fl.c
-FL_O = $(TARGET_DIR)/fl.o
+BUMP_C  = $(BUMP_DIR)/bump.c
+BUMP_O  = $(TARGET_DIR)/bump.o
+FL_C    = $(FL_DIR)/fl.c
+FL_O    = $(TARGET_DIR)/fl.o
+STACK_C = $(STACK_DIR)/stack.c
+STACK_O = $(TARGET_DIR)/stack.o
 
-cheap: $(BUMP_O) $(FL_O)
+cheap: $(BUMP_O) $(FL_O) $(STACK_O)
 
 $(BUMP_O): $(BUMP_C)
 	@mkdir -p $(TARGET_DIR)
 	$(CC) -c $(FLAGS) -o $@ $<
 
 $(FL_O): $(FL_C)
+	@mkdir -p $(TARGET_DIR)
+	$(CC) -c $(FLAGS) -o $@ $<
+
+$(STACK_O): $(STACK_C)
 	@mkdir -p $(TARGET_DIR)
 	$(CC) -c $(FLAGS) -o $@ $<
 

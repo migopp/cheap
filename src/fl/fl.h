@@ -9,7 +9,7 @@
 #define CHEAP_FL_FRAME_SIZE 8
 
 // The smallest acceptable block size
-#define CHEAP_FL_SPLIT_MIN (1 << 4)
+#define CHEAP_FL_SPLIT_MIN (1 << 5)
 
 void fl_init();
 void *fl_malloc(size_t);

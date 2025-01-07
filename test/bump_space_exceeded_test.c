@@ -1,7 +1,4 @@
-// CHEAP_BUMP_SIZE: 1 << 10
-
 #include "bump/bump.h"
-#include "assert.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -15,11 +12,7 @@ int main() {
 	// Fail to allocate!
 	//
 	// We should not have enough room.
-	// 256 * 8 is like 2048, and
-	// 2048 is only... 1 << 11?
-	ASSERT(256 * 8 == 2048);
-	ASSERT(2048 == (1 << 11));
-	uint8_t *p = (uint8_t *)bump_malloc((1 << 11) * sizeof(uint8_t));
+	uint8_t *p = (uint8_t *)bump_malloc((1 << 21) * sizeof(uint8_t));
 	if (p != NULL) {
 		fprintf(stderr, "allocation succeeded when it was meant to fail: %p\n",
 				p);

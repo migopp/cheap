@@ -1,5 +1,3 @@
-// CHEAP_FL_SIZE: 1 << 20
-
 #include "fl/fl.h"
 #include "assert.h"
 #include <stdint.h>
