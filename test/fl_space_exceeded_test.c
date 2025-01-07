@@ -11,6 +11,7 @@
 
 int main() {
 	printf("`fl_space_exceeded_test` init\n");
+	fl_init();
 
 	// Fail to allocate!
 	//

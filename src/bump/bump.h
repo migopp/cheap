@@ -2,9 +2,7 @@
 #define _CHEAP_BUMP
 #include <stddef.h>
 
-#ifndef CHEAP_BUMP_SIZE
-#define CHEAP_BUMP_SIZE 1 << 10
-#endif	// !CHEAP_BUMP_SIZE
+#define CHEAP_BUMP_SIZE (1 << 10)
 
 void *bump_malloc(size_t);
 size_t get_bump_mallocc();

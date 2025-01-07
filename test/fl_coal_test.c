@@ -11,13 +11,14 @@
 
 int main() {
 	printf("`fl_coal_test` init\n");
+	fl_init();
 
 	// Allocate the entire heap
 	//
 	// This should leave no room remaining
-	uint8_t *f = (uint8_t *)fl_malloc(1 << 10 * sizeof(uint8_t));
+	uint8_t *f = (uint8_t *)fl_malloc(((1 << 10) - 24) * sizeof(uint8_t));
 	ASSERT(f != NULL);
-	uint8_t *n = (uint8_t *)fl_malloc(1 << 10 * sizeof(uint8_t));
+	uint8_t *n = (uint8_t *)fl_malloc(((1 << 10) - 24) * sizeof(uint8_t));
 	ASSERT(n != NULL);
 
 	// Now, if we allocate again it should fail
@@ -28,7 +29,7 @@ int main() {
 	// coalesce into one so as to reduce fragmentation
 	fl_free(f);
 	fl_free(n);
-	n = (uint8_t *)fl_malloc(1 << 20 * sizeof(uint8_t));
+	n = (uint8_t *)fl_malloc(((1 << 20) - 24) * sizeof(uint8_t));
 	ASSERT(f == n);
 
 	// Match counts

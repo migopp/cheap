@@ -2,9 +2,14 @@
 #define _CHEAP_FL
 #include <stddef.h>
 
-#ifndef CHEAP_FL_SIZE
-#define CHEAP_FL_SIZE 1 << 20
-#endif	// !CHEAP_FL_SIZE
+// Heap size, in bytes
+#define CHEAP_FL_SIZE (1 << 20)
+
+// Block frame size
+#define CHEAP_FL_FRAME_SIZE 8
+
+// The smallest acceptable block size
+#define CHEAP_FL_SPLIT_MIN (1 << 4)
 
 void fl_init();
 void *fl_malloc(size_t);
