@@ -5,8 +5,8 @@
 
 uint8_t cheap_stack[CHEAP_STACK_SIZE];
 void *cheap_sp = cheap_stack;
-size_t cheap_stack_mallocc = 0;
-size_t cheap_stack_freec = 0;
+size_t stack_mallocc = 0;
+size_t stack_freec = 0;
 
 bool stack_in_bounds_left(void *p) { return p >= (void *)cheap_stack; }
 
@@ -25,7 +25,7 @@ void *stack_malloc(size_t size) {
 	// Increment and return
 	void *ptr = cheap_sp;
 	cheap_sp += size;
-	cheap_stack_mallocc++;
+	stack_mallocc++;
 	return ptr;
 }
 
@@ -35,9 +35,9 @@ void stack_free(void *ptr) {
 
 	// Regress stack pointer
 	cheap_sp = ptr;
-	cheap_stack_freec++;
+	stack_freec++;
 }
 
-size_t get_stack_mallocc() { return cheap_stack_mallocc; }
+size_t get_stack_mallocc() { return stack_mallocc; }
 
-size_t get_stack_freec() { return cheap_stack_freec; }
+size_t get_stack_freec() { return stack_freec; }

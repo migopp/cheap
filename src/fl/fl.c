@@ -5,14 +5,14 @@
 #include <stdbool.h>
 
 uint8_t cheap_fl[CHEAP_FL_SIZE];
-size_t cheap_fl_mallocc = 0;
-size_t cheap_fl_freec = 0;
+size_t fl_mallocc = 0;
+size_t fl_freec = 0;
 
 // Each free list block has the following layout in memory:
 //
-//   8B   8B                 nB                 8B
+//   8B   8B                 nB                8B
 // ________________________________________________
-// | sz | nx |              data              | he |
+// | sz | nx |              data             | he |
 // ------------------------------------------------
 //
 // Where `sz`, `nx`, and `he` are metadata, and:
@@ -28,9 +28,6 @@ typedef struct fl_head_md {
 typedef struct fl_tail_md {
 	fl_head_md *flb_head;  // he
 } fl_tail_md;
-
-const size_t CHEAP_FL_MD_SIZE = sizeof(fl_head_md) + sizeof(fl_tail_md);
-fl_head_md *first_flb = NULL;
 
 size_t fl_frame_down(size_t addr) {
 	return (addr / CHEAP_FL_FRAME_SIZE) * CHEAP_FL_FRAME_SIZE;
@@ -51,6 +48,9 @@ bool fl_in_bounds(void *p) {
 }
 
 bool fl_is_free(fl_head_md *head) { return head->flb_size > 0; }
+
+const size_t CHEAP_FL_MD_SIZE = sizeof(fl_head_md) + sizeof(fl_tail_md);
+fl_head_md *first_flb = NULL;
 
 void fl_init() {
 	// Head metadata
@@ -121,7 +121,7 @@ void *fl_malloc(size_t size) {
 	fit->flb_next = 0;
 
 	// Increment malloc count and hand over
-	cheap_fl_mallocc++;
+	fl_mallocc++;
 	return (void *)(fit + 1);
 }
 
@@ -166,9 +166,9 @@ void fl_free(void *ptr) {
 	first_flb = head;
 
 	// Increment free count
-	cheap_fl_freec++;
+	fl_freec++;
 }
 
-size_t get_fl_mallocc() { return cheap_fl_mallocc; }
+size_t get_fl_mallocc() { return fl_mallocc; }
 
-size_t get_fl_freec() { return cheap_fl_freec; }
+size_t get_fl_freec() { return fl_freec; }
