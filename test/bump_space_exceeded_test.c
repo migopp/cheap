@@ -8,11 +8,12 @@
 
 int main() {
 	printf("`bump_space_exceeded_test` init\n");
+	bump_allocator *a = bump_init();
 
 	// Fail to allocate!
 	//
 	// We should not have enough room.
-	uint8_t *p = (uint8_t *)bump_malloc((1 << 21) * sizeof(uint8_t));
+	uint8_t *p = (uint8_t *)bump_malloc(a, (1 << 21) * sizeof(uint8_t));
 	if (p != NULL) {
 		fprintf(stderr, "allocation succeeded when it was meant to fail: %p\n",
 				p);
@@ -20,9 +21,10 @@ int main() {
 
 	// Match counts
 	size_t bump_mallocc;
-	if ((bump_mallocc = get_bump_mallocc()) != 0) {
+	if ((bump_mallocc = bump_malloc_count(a)) != 0) {
 		fprintf(stderr, "wrong `bump_mallocc`: %zu\n", bump_mallocc);
 	}
 
+	bump_deinit(a);
 	printf("`bump_space_exceeded_test` deinit\n");
 }

@@ -9,27 +9,28 @@
 
 int main() {
 	printf("`pool_seq_test` init\n");
-	pool_init();
+	pool_allocator *a = pool_init();
 
 	// Allocate
-	uint8_t *f = (uint8_t *)pool_malloc(sizeof(uint8_t));
+	uint8_t *f = (uint8_t *)pool_malloc(a, sizeof(uint8_t));
 	ASSERT(f != NULL);
-	uint8_t *n = (uint8_t *)pool_malloc(sizeof(uint8_t));
+	uint8_t *n = (uint8_t *)pool_malloc(a, sizeof(uint8_t));
 	ASSERT(n != NULL);
 
 	// Free our blocks
-	pool_free(f);
-	pool_free(n);
+	pool_free(a, f);
+	pool_free(a, n);
 
 	// Match counts
 	size_t pool_mallocc;
-	if ((pool_mallocc = get_pool_mallocc()) != 2) {
+	if ((pool_mallocc = pool_malloc_count(a)) != 2) {
 		fprintf(stderr, "wrong `pool_mallocc`: %zu\n", pool_mallocc);
 	}
 	size_t pool_freec;
-	if ((pool_freec = get_pool_freec()) != 2) {
+	if ((pool_freec = pool_free_count(a)) != 2) {
 		fprintf(stderr, "wrong `pool_freec`: %zu\n", pool_freec);
 	}
 
+	pool_deinit(a);
 	printf("`pool_seq_test` deinit\n");
 }

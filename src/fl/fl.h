@@ -2,18 +2,23 @@
 #define _CHEAP_FL
 #include <stddef.h>
 
-// Heap size, in bytes
+// Settings
 #define CHEAP_FL_SIZE (1 << 20)
-
-// Block frame size
 #define CHEAP_FL_FRAME_SIZE 8
-
-// The smallest acceptable block size
 #define CHEAP_FL_SPLIT_MIN (1 << 5)
 
-void fl_init();
-void *fl_malloc(size_t);
-void fl_free(void *);
-size_t get_fl_mallocc();
-size_t get_fl_freec();
+// Allocator object
+typedef struct fl_allocator fl_allocator;
+
+// CD
+fl_allocator *fl_init(void);
+void fl_deinit(fl_allocator *a);
+
+// MMAN
+void *fl_malloc(fl_allocator *, size_t);
+void fl_free(fl_allocator *, void *);
+
+// Debug
+size_t fl_malloc_count(fl_allocator *);
+size_t fl_free_count(fl_allocator *);
 #endif	// !_CHEAP_FL

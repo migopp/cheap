@@ -9,11 +9,12 @@
 
 int main() {
 	printf("`bump_seq_test` init\n");
+	bump_allocator *a = bump_init();
 
 	// Allocate
-	uint8_t *f = (uint8_t *)bump_malloc(sizeof(uint8_t));
+	uint8_t *f = (uint8_t *)bump_malloc(a, sizeof(uint8_t));
 	ASSERT(f != NULL);
-	uint8_t *n = (uint8_t *)bump_malloc(sizeof(uint8_t));
+	uint8_t *n = (uint8_t *)bump_malloc(a, sizeof(uint8_t));
 	ASSERT(n != NULL);
 	// If we bump, consecutive allocations should be
 	// neighboring
@@ -25,9 +26,10 @@ int main() {
 
 	// Match counts
 	size_t bump_mallocc;
-	if ((bump_mallocc = get_bump_mallocc()) != 2) {
+	if ((bump_mallocc = bump_malloc_count(a)) != 2) {
 		fprintf(stderr, "wrong `bump_mallocc`: %zu\n", bump_mallocc);
 	}
 
+	bump_deinit(a);
 	printf("`bump_seq_test` deinit\n");
 }

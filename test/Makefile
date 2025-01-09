@@ -19,7 +19,12 @@ test: $(TEST_RES)
 	@for res in $(TEST_RES); do \
 		if test -f $$res; then \
 			resbn=$$(basename $$res); \
-			echo "$$resbn: `cat $$res`"; \
+			resstr=$$(cat $$res); \
+			if [ "$$resstr" = "pass" ]; then \
+				echo "$$resbn: $$(tput setaf 2) pass $$(tput sgr0)"; \
+			else \
+				echo "$$resbn: $$(tput setaf 1) fail $$(tput sgr0)"; \
+			fi; \
 		fi; \
 	done
 

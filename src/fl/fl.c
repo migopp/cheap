@@ -1,12 +1,10 @@
 #include "fl.h"
+#include "allocator.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <stdbool.h>
-
-uint8_t cheap_fl[CHEAP_FL_SIZE];
-size_t fl_mallocc = 0;
-size_t fl_freec = 0;
 
 // Each free list block has the following layout in memory:
 //
@@ -28,6 +26,15 @@ typedef struct fl_head_md {
 typedef struct fl_tail_md {
 	fl_head_md *flb_head;  // he
 } fl_tail_md;
+const size_t CHEAP_FL_MD_SIZE = sizeof(fl_head_md) + sizeof(fl_tail_md);
+
+struct fl_allocator {
+	AllocatorType a_type;
+	uint8_t *fl_heap;
+	fl_head_md *fl_first;
+	size_t fl_mallocc;
+	size_t fl_freec;
+};
 
 size_t fl_frame_down(size_t addr) {
 	return (addr / CHEAP_FL_FRAME_SIZE) * CHEAP_FL_FRAME_SIZE;
@@ -37,45 +44,79 @@ size_t fl_frame_up(size_t addr) {
 	return fl_frame_down(addr + CHEAP_FL_FRAME_SIZE - 1);
 }
 
-bool fl_in_bounds_left(void *p) { return p >= (void *)cheap_fl; }
-
-bool fl_in_bounds_right(void *p) {
-	return p < (void *)&cheap_fl[CHEAP_FL_SIZE];
+bool fl_in_bounds_left(fl_allocator *f, void *p) {
+	return p >= (void *)f->fl_heap;
 }
 
-bool fl_in_bounds(void *p) {
-	return fl_in_bounds_left(p) && fl_in_bounds_right(p);
+bool fl_in_bounds_right(fl_allocator *f, void *p) {
+	return p < (void *)&f->fl_heap[CHEAP_FL_SIZE];
+}
+
+bool fl_in_bounds(fl_allocator *f, void *p) {
+	return fl_in_bounds_left(f, p) && fl_in_bounds_right(f, p);
 }
 
 bool fl_is_free(fl_head_md *head) { return head->flb_size > 0; }
 
-const size_t CHEAP_FL_MD_SIZE = sizeof(fl_head_md) + sizeof(fl_tail_md);
-fl_head_md *first_flb = NULL;
+fl_allocator *fl_init(void) {
+	// Make space for the actual allocator object
+	//
+	// Would use `sbrk` but its depricated? `mmap` seems like a
+	// tad bit of a waste, since it'll give us a whole page,
+	// but oh well.
+	fl_allocator *a = mmap(NULL, sizeof(fl_allocator), PROT_READ | PROT_WRITE,
+						   MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (a == MAP_FAILED) {
+		return NULL;
+	}
 
-void fl_init() {
+	// Create heap
+	//
+	// Now, this is more of a job for `mmap`.
+	uint8_t *h = mmap(NULL, CHEAP_FL_SIZE, PROT_READ | PROT_WRITE,
+					  MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (h == MAP_FAILED) {
+		munmap(a, sizeof(fl_allocator));
+		return NULL;
+	}
+
+	// Init heap data
+	a->a_type = FL;
+	a->fl_heap = h;
+	a->fl_mallocc = 0;
+	a->fl_freec = 0;
+
 	// Head metadata
-	fl_head_md *cheap_fl_head = (fl_head_md *)cheap_fl;
+	fl_head_md *cheap_fl_head = (fl_head_md *)h;
 	cheap_fl_head->flb_size = CHEAP_FL_SIZE - CHEAP_FL_MD_SIZE;
 	cheap_fl_head->flb_next = NULL;
 
 	// Tail metadata
 	fl_tail_md *cheap_fl_tail =
-		(fl_tail_md *)(&cheap_fl[CHEAP_FL_SIZE] - sizeof(uintptr_t));
+		(fl_tail_md *)(&h[CHEAP_FL_SIZE] - sizeof(uintptr_t));
 	cheap_fl_tail->flb_head = cheap_fl_head;
 
 	// Init free list
-	first_flb = cheap_fl_head;
+	a->fl_first = cheap_fl_head;
+
+	return a;
 }
 
-void *fl_malloc(size_t size) {
+void fl_deinit(fl_allocator *a) {
+	// Unmap our segments
+	munmap(a->fl_heap, CHEAP_FL_SIZE);
+	munmap(a, sizeof(fl_allocator));
+}
+
+void *fl_malloc(fl_allocator *a, size_t size) {
 	// Align size to 8B
 	size = fl_frame_up(size);
 
 	// Nothing in free list
-	if (first_flb == NULL) return NULL;
+	if (a->fl_first == NULL) return NULL;
 
 	// First fit
-	fl_head_md *h = first_flb, *p = NULL;
+	fl_head_md *h = a->fl_first, *p = NULL;
 	while (h != NULL && h->flb_size > 0 && (size_t)h->flb_size < size) {
 		p = h;
 		h = h->flb_next;
@@ -109,7 +150,7 @@ void *fl_malloc(size_t size) {
 	// Set previous flb metadata
 	if (p == NULL) {
 		// This block was first in the free list
-		first_flb = fit->flb_next;
+		a->fl_first = fit->flb_next;
 	} else {
 		// This block was not first in the free list,
 		// so connect previous block to the next
@@ -121,54 +162,57 @@ void *fl_malloc(size_t size) {
 	fit->flb_next = 0;
 
 	// Increment malloc count and hand over
-	fl_mallocc++;
+	a->fl_mallocc++;
 	return (void *)(fit + 1);
 }
 
-void fl_free(void *ptr) {
+void fl_free(fl_allocator *a, void *ptr) {
 	// Validate
 	uint8_t *n_ptr = (uint8_t *)ptr;
 	fl_head_md *head = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
-	if (!fl_in_bounds(n_ptr) || !fl_in_bounds(head) || fl_is_free(head)) return;
+	if (!fl_in_bounds(a, n_ptr) || !fl_in_bounds(a, head) || fl_is_free(head))
+		return;
 
 	// Mark as free
 	head->flb_size = -head->flb_size;
 
-	// Check for coalesce
+	// Left coalesce
 	fl_tail_md *left_tail =
 		(fl_tail_md *)((uint8_t *)head - sizeof(fl_tail_md));
-	if (fl_in_bounds_left(left_tail) &&
-		fl_in_bounds_left(left_tail->flb_head) &&
+	if (fl_in_bounds_left(a, left_tail) &&
+		fl_in_bounds_left(a, left_tail->flb_head) &&
 		fl_is_free(left_tail->flb_head)) {
 		fl_head_md *left_head = left_tail->flb_head;
 		// Merge left
 		left_head->flb_size += head->flb_size + CHEAP_FL_MD_SIZE;
 		head = left_head;
-		fl_tail_md *n_tail =
-			(fl_tail_md *)(head + head->flb_size + sizeof(fl_head_md));
+		fl_tail_md *n_tail = (fl_tail_md *)((uint8_t *)head + head->flb_size +
+											sizeof(fl_head_md));
 		n_tail->flb_head = head;
 	}
+
+	// Right coalesce
 	fl_head_md *right_head =
 		(fl_head_md *)((uint8_t *)head + head->flb_size + CHEAP_FL_MD_SIZE);
-	if (fl_in_bounds_right(right_head) && fl_is_free(right_head)) {
+	if (fl_in_bounds_right(a, right_head) && fl_is_free(right_head)) {
 		// Merge right
 		head->flb_size += right_head->flb_size + CHEAP_FL_MD_SIZE;
-		fl_tail_md *n_tail =
-			(fl_tail_md *)(head + head->flb_size + sizeof(fl_head_md));
+		fl_tail_md *n_tail = (fl_tail_md *)((uint8_t *)head + head->flb_size +
+											sizeof(fl_head_md));
 		n_tail->flb_head = head;
 	}
 
 	// Append to the free list
-	fl_head_md *o_first_flb = first_flb;
-	if (o_first_flb != NULL) {
-		head->flb_next = o_first_flb;
+	fl_head_md *o_first = a->fl_first;
+	if (o_first != NULL) {
+		head->flb_next = o_first;
 	}
-	first_flb = head;
+	a->fl_first = head;
 
 	// Increment free count
-	fl_freec++;
+	a->fl_freec++;
 }
 
-size_t get_fl_mallocc() { return fl_mallocc; }
+size_t fl_malloc_count(fl_allocator *a) { return a->fl_mallocc; }
 
-size_t get_fl_freec() { return fl_freec; }
+size_t fl_free_count(fl_allocator *a) { return a->fl_freec; }

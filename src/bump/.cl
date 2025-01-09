@@ -1,5 +1,0 @@
-CompileFlags:
-  Add:
-    - "-Wall"
-    - "-Wextra"
-    - "-std=c99"

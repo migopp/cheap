@@ -2,13 +2,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <stdbool.h>
-
-uint8_t cheap_spool[CHEAP_POOL_SIZE];
-uint8_t cheap_mpool[CHEAP_POOL_SIZE];
-uint8_t cheap_lpool[CHEAP_POOL_SIZE];
-size_t pool_mallocc = 0;
-size_t pool_freec = 0;
+#include "allocator.h"
 
 // Each free list block has the following layout in memory:
 //
@@ -25,9 +21,17 @@ typedef struct fl_head_md {
 	struct fl_head_md *flb_next;
 } fl_head_md;
 
-fl_head_md *s_first_flb = NULL;
-fl_head_md *m_first_flb = NULL;
-fl_head_md *l_first_flb = NULL;
+struct pool_allocator {
+	AllocatorType a_type;
+	uint8_t *pool_sheap;
+	uint8_t *pool_mheap;
+	uint8_t *pool_lheap;
+	fl_head_md *pool_sfirst;
+	fl_head_md *pool_mfirst;
+	fl_head_md *pool_lfirst;
+	size_t pool_mallocc;
+	size_t pool_freec;
+};
 
 typedef enum PoolSize { SMALL, MEDIUM, LARGE, NO_FIT } PoolSize;
 
@@ -43,66 +47,121 @@ PoolSize determine_size(size_t size) {
 	}
 }
 
-void pool_init(void) {
-	// Small
+pool_allocator *pool_init(void) {
+	// Make space for the actual allocator object
+	//
+	// Would use `sbrk` but its depricated? `mmap` seems like a
+	// tad bit of a waste, since it'll give us a whole page,
+	// but oh well.
+	pool_allocator *a =
+		mmap(NULL, sizeof(pool_allocator), PROT_READ | PROT_WRITE,
+			 MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (a == MAP_FAILED) {
+		return NULL;
+	}
+
+	// Create heaps
+	//
+	// Now, this is more of a job for `mmap`.
+	uint8_t *s = mmap(NULL, CHEAP_POOL_SIZE, PROT_READ | PROT_WRITE,
+					  MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (s == MAP_FAILED) {
+		munmap(a, sizeof(pool_allocator));
+		return NULL;
+	}
+	uint8_t *m = mmap(NULL, CHEAP_POOL_SIZE, PROT_READ | PROT_WRITE,
+					  MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (m == MAP_FAILED) {
+		munmap(a, sizeof(pool_allocator));
+		munmap(s, CHEAP_POOL_SIZE);
+		return NULL;
+	}
+	uint8_t *l = mmap(NULL, CHEAP_POOL_SIZE, PROT_READ | PROT_WRITE,
+					  MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (l == MAP_FAILED) {
+		munmap(a, sizeof(pool_allocator));
+		munmap(s, CHEAP_POOL_SIZE);
+		munmap(m, CHEAP_POOL_SIZE);
+		return NULL;
+	}
+
+	// Init heap data
+	a->a_type = POOL;
+	a->pool_sheap = s;
+	a->pool_mheap = m;
+	a->pool_lheap = l;
+	a->pool_mallocc = 0;
+	a->pool_freec = 0;
+
+	// Small free list init
 	const size_t S_BLOCKS = CHEAP_POOL_SIZE / CHEAP_POOL_S;
-	s_first_flb = (fl_head_md *)cheap_spool;
-	s_first_flb->flb_size = CHEAP_POOL_S;
-	fl_head_md *p = s_first_flb;
+	a->pool_sfirst = (fl_head_md *)a->pool_sheap;
+	a->pool_sfirst->flb_size = CHEAP_POOL_S;
+	fl_head_md *p = a->pool_sfirst;
 	for (size_t i = 1; i < S_BLOCKS; ++i) {
-		fl_head_md *h = (fl_head_md *)&cheap_spool[i * CHEAP_POOL_S];
+		fl_head_md *h = (fl_head_md *)&a->pool_sheap[i * CHEAP_POOL_S];
 		h->flb_size = CHEAP_POOL_S;
 		p->flb_next = h;
 		p = h;
 	}
 	p->flb_next = NULL;
 
-	// Medium
+	// Medium free list init
 	const size_t M_BLOCKS = CHEAP_POOL_SIZE / CHEAP_POOL_M;
-	m_first_flb = (fl_head_md *)cheap_mpool;
-	m_first_flb->flb_size = CHEAP_POOL_M;
-	p = m_first_flb;
+	a->pool_mfirst = (fl_head_md *)a->pool_mheap;
+	a->pool_mfirst->flb_size = CHEAP_POOL_M;
+	p = a->pool_mfirst;
 	for (size_t i = 1; i < M_BLOCKS; ++i) {
-		fl_head_md *h = (fl_head_md *)&cheap_mpool[i * CHEAP_POOL_M];
+		fl_head_md *h = (fl_head_md *)&a->pool_mheap[i * CHEAP_POOL_M];
 		h->flb_size = CHEAP_POOL_M;
 		p->flb_next = h;
 		p = h;
 	}
 	p->flb_next = NULL;
 
-	// Large
+	// Large free list init
 	const size_t L_BLOCKS = CHEAP_POOL_SIZE / CHEAP_POOL_L;
-	l_first_flb = (fl_head_md *)cheap_lpool;
-	l_first_flb->flb_size = CHEAP_POOL_L;
-	p = l_first_flb;
+	a->pool_lfirst = (fl_head_md *)a->pool_lheap;
+	a->pool_lfirst->flb_size = CHEAP_POOL_L;
+	p = a->pool_lfirst;
 	for (size_t i = 1; i < L_BLOCKS; ++i) {
-		fl_head_md *h = (fl_head_md *)&cheap_lpool[i * CHEAP_POOL_L];
+		fl_head_md *h = (fl_head_md *)&a->pool_lheap[i * CHEAP_POOL_L];
 		h->flb_size = CHEAP_POOL_L;
 		p->flb_next = h;
 		p = h;
 	}
 	p->flb_next = NULL;
+
+	return a;
 }
 
-void *pool_malloc(size_t size) {
+void pool_deinit(pool_allocator *a) {
+	// Unmap our segments
+	munmap(a->pool_sheap, CHEAP_POOL_SIZE);
+	munmap(a->pool_mheap, CHEAP_POOL_SIZE);
+	munmap(a->pool_lheap, CHEAP_POOL_SIZE);
+	munmap(a, sizeof(pool_allocator));
+}
+
+void *pool_malloc(pool_allocator *a, size_t size) {
 	// Find and grab block from correct free list
 	fl_head_md *h = NULL;
 	PoolSize ps = determine_size(size);
 	switch (ps) {
 		case SMALL:
-			if (s_first_flb == NULL) return NULL;
-			h = s_first_flb;
-			s_first_flb = s_first_flb->flb_next;
+			if (a->pool_sfirst == NULL) return NULL;
+			h = a->pool_sfirst;
+			a->pool_sfirst = a->pool_sfirst->flb_next;
 			break;
 		case MEDIUM:
-			if (m_first_flb == NULL) return NULL;
-			h = m_first_flb;
-			m_first_flb = m_first_flb->flb_next;
+			if (a->pool_mfirst == NULL) return NULL;
+			h = a->pool_mfirst;
+			a->pool_mfirst = a->pool_mfirst->flb_next;
 			break;
 		case LARGE:
-			if (l_first_flb == NULL) return NULL;
-			h = l_first_flb;
-			l_first_flb = l_first_flb->flb_next;
+			if (a->pool_lfirst == NULL) return NULL;
+			h = a->pool_lfirst;
+			a->pool_lfirst = a->pool_lfirst->flb_next;
 			break;
 		case NO_FIT:
 			return NULL;
@@ -112,11 +171,11 @@ void *pool_malloc(size_t size) {
 	h->flb_next = 0;
 
 	// Increment malloc count and hand over
-	pool_mallocc++;
+	a->pool_mallocc++;
 	return (void *)(h + 1);
 }
 
-void pool_free(void *ptr) {
+void pool_free(pool_allocator *a, void *ptr) {
 	// Get metadata head
 	uint8_t *n_ptr = (uint8_t *)ptr;
 	fl_head_md *h = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
@@ -125,25 +184,25 @@ void pool_free(void *ptr) {
 	PoolSize ps = determine_size(h->flb_size);
 	switch (ps) {
 		case SMALL:
-			h->flb_next = s_first_flb;
-			s_first_flb = h;
+			h->flb_next = a->pool_sfirst;
+			a->pool_sfirst = h;
 			break;
 		case MEDIUM:
-			h->flb_next = m_first_flb;
-			m_first_flb = h;
+			h->flb_next = a->pool_mfirst;
+			a->pool_mfirst = h;
 			break;
 		case LARGE:
-			h->flb_next = l_first_flb;
-			l_first_flb = h;
+			h->flb_next = a->pool_lfirst;
+			a->pool_lfirst = h;
 			break;
 		case NO_FIT:
 			return;
 	}
 
 	// Increment free count
-	pool_freec++;
+	a->pool_freec++;
 }
 
-size_t get_pool_mallocc(void) { return pool_mallocc; }
+size_t pool_malloc_count(pool_allocator *a) { return a->pool_mallocc; }
 
-size_t get_pool_freec(void) { return pool_freec; }
+size_t pool_free_count(pool_allocator *a) { return a->pool_freec; }
