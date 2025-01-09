@@ -8,6 +8,7 @@ BUMP_DIR   = $(SRC_DIR)/bump
 FL_DIR     = $(SRC_DIR)/fl
 STACK_DIR  = $(SRC_DIR)/stack
 POOL_DIR   = $(SRC_DIR)/pool
+BUDDY_DIR   = $(SRC_DIR)/buddy
 TARGET_DIR = target
 
 BUMP_C  = $(BUMP_DIR)/bump.c
@@ -18,8 +19,10 @@ STACK_C = $(STACK_DIR)/stack.c
 STACK_O = $(TARGET_DIR)/stack.o
 POOL_C = $(POOL_DIR)/pool.c
 POOL_O = $(TARGET_DIR)/pool.o
+BUDDY_C = $(BUDDY_DIR)/buddy.c
+BUDDY_O = $(TARGET_DIR)/buddy.o
 
-cheap: $(BUMP_O) $(FL_O) $(STACK_O) $(POOL_O)
+cheap: $(BUMP_O) $(FL_O) $(STACK_O) $(POOL_O) $(BUDDY_O)
 
 $(BUMP_O): $(BUMP_C)
 	@mkdir -p $(TARGET_DIR)
@@ -34,6 +37,10 @@ $(STACK_O): $(STACK_C)
 	$(CC) -c $(FLAGS) -o $@ $<
 
 $(POOL_O): $(POOL_C)
+	@mkdir -p $(TARGET_DIR)
+	$(CC) -c $(FLAGS) -o $@ $<
+
+$(BUDDY_O): $(BUDDY_C)
 	@mkdir -p $(TARGET_DIR)
 	$(CC) -c $(FLAGS) -o $@ $<
 

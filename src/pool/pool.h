@@ -11,7 +11,7 @@
 // Allocator object
 typedef struct pool_allocator pool_allocator;
 
-// CD API
+// CD
 pool_allocator *pool_init(void);
 void pool_deinit(pool_allocator *);
 
