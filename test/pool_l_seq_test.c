@@ -8,14 +8,23 @@
 #endif
 
 int main() {
-	printf("`pool_seq_test` init\n");
+	printf("`pool_l_seq_test` init\n");
 	pool_allocator *a = pool_init();
 
 	// Allocate
-	uint8_t *f = (uint8_t *)pool_malloc(a, sizeof(uint8_t));
+	uint8_t *f = (uint8_t *)pool_malloc(a, 513 * sizeof(uint8_t));
 	ASSERT(f != NULL);
-	uint8_t *n = (uint8_t *)pool_malloc(a, sizeof(uint8_t));
+	uint8_t *n = (uint8_t *)pool_malloc(a, 8191 * sizeof(uint8_t));
 	ASSERT(n != NULL);
+
+	// Check sizes
+	//
+	// This is technically undefined, but I know that
+	// this is metadata because I implemented it.
+	size_t f_size = *(size_t *)(f - 16);
+	size_t n_size = *(size_t *)(n - 16);
+	ASSERT(f_size == CHEAP_POOL_L);
+	ASSERT(n_size == CHEAP_POOL_L);
 
 	// Free our blocks
 	pool_free(a, f);
@@ -32,5 +41,5 @@ int main() {
 	}
 
 	pool_deinit(a);
-	printf("`pool_seq_test` deinit\n");
+	printf("`pool_l_seq_test` deinit\n");
 }
