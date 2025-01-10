@@ -3,8 +3,8 @@
 #include <stddef.h>
 
 // Settings
-#define CHEAP_BUDDY_BLOCK_SIZE (1 << 12)
-#define CHEAP_BUDDY_ORDERS 2
+#define CHEAP_BUDDY_BLOCK_SIZE (1 << 4)
+#define CHEAP_BUDDY_ORDERS 10
 
 // Allocator object
 typedef struct buddy_allocator buddy_allocator;

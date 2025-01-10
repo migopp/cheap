@@ -1,5 +1,4 @@
 #include "fl.h"
-#include "allocator.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -29,7 +28,6 @@ typedef struct fl_tail_md {
 const size_t CHEAP_FL_MD_SIZE = sizeof(fl_head_md) + sizeof(fl_tail_md);
 
 struct fl_allocator {
-	AllocatorType a_type;
 	uint8_t *fl_heap;
 	fl_head_md *fl_first;
 	size_t fl_mallocc;
@@ -81,7 +79,6 @@ fl_allocator *fl_init(void) {
 	}
 
 	// Init heap data
-	a->a_type = FL;
 	a->fl_heap = h;
 	a->fl_mallocc = 0;
 	a->fl_freec = 0;

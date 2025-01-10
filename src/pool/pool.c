@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <stdbool.h>
-#include "allocator.h"
 
 // Each free list block has the following layout in memory:
 //
@@ -22,7 +21,6 @@ typedef struct fl_head_md {
 } fl_head_md;
 
 struct pool_allocator {
-	AllocatorType a_type;
 	uint8_t *pool_sheap;
 	uint8_t *pool_mheap;
 	uint8_t *pool_lheap;
@@ -33,7 +31,7 @@ struct pool_allocator {
 	size_t pool_freec;
 };
 
-typedef enum PoolSize { SMALL, MEDIUM, LARGE, NO_FIT } PoolSize;
+typedef enum { SMALL, MEDIUM, LARGE, NO_FIT } PoolSize;
 
 static PoolSize determine_size(size_t size) {
 	if (size <= CHEAP_POOL_S) {
@@ -86,7 +84,6 @@ pool_allocator *pool_init(void) {
 	}
 
 	// Init heap data
-	a->a_type = POOL;
 	a->pool_sheap = s;
 	a->pool_mheap = m;
 	a->pool_lheap = l;

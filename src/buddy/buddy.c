@@ -1,5 +1,4 @@
 #include "buddy.h"
-#include "allocator.h"
 #include <string.h>
 #include <stdint.h>
 #include <sys/mman.h>
@@ -9,7 +8,6 @@
 #define CHEAP_BUDDY_TOTAL_SIZE (CHEAP_BUDDY_BLOCK_SIZE * CHEAP_BUDDY_LEAVES)
 
 struct buddy_allocator {
-	AllocatorType a_type;
 	uint8_t buddy_md[CHEAP_BUDDY_BLOCKS];
 	uint8_t *buddy_heap;
 	size_t buddy_mallocc;
@@ -132,7 +130,6 @@ buddy_allocator *buddy_init(void) {
 	}
 
 	// Init heap data
-	a->a_type = BUDDY;
 	a->buddy_heap = h;
 	a->buddy_mallocc = 0;
 	a->buddy_freec = 0;

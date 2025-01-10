@@ -1,12 +1,10 @@
 #include "stack.h"
-#include "allocator.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/mman.h>
 
 struct stack_allocator {
-	AllocatorType a_type;
 	uint8_t *stack_heap;
 	uint8_t *stack_sp;
 	size_t stack_mallocc;
@@ -49,7 +47,6 @@ stack_allocator *stack_init(void) {
 	}
 
 	// Init heap data
-	a->a_type = STACK;
 	a->stack_heap = h;
 	a->stack_sp = h;
 	a->stack_mallocc = 0;

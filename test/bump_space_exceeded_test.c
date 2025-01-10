@@ -13,7 +13,7 @@ int main() {
 	// Fail to allocate!
 	//
 	// We should not have enough room.
-	uint8_t *p = (uint8_t *)bump_malloc(a, (1 << 21) * sizeof(uint8_t));
+	uint8_t *p = (uint8_t *)bump_malloc(a, CHEAP_BUMP_SIZE + 1);
 	if (p != NULL) {
 		fprintf(stderr, "allocation succeeded when it was meant to fail: %p\n",
 				p);

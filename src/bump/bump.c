@@ -1,12 +1,10 @@
 #include "bump.h"
-#include "allocator.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <sys/mman.h>
 
 struct bump_allocator {
-	AllocatorType a_type;
 	uint8_t *bmp_heap;
 	size_t bmp_idx;
 	size_t bmp_mallocc;
@@ -36,7 +34,6 @@ bump_allocator *bump_init(void) {
 	}
 
 	// Init heap data
-	a->a_type = BUMP;
 	a->bmp_heap = h;
 	a->bmp_idx = 0;
 	a->bmp_mallocc = 0;
