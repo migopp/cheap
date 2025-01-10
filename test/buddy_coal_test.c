@@ -11,11 +11,9 @@ int main() {
 	printf("`buddy_coal_test` init\n");
 	buddy_allocator *a = buddy_init();
 
-	const size_t CHEAP_BUDDY_BLOCKS = (1 << (CHEAP_BUDDY_ORDERS + 1)) - 1;
-	uint8_t *c[CHEAP_BUDDY_BLOCKS];
-
 	// Fill up heap space
 	const size_t CHEAP_BUDDY_LEAVES = 1 << CHEAP_BUDDY_ORDERS;
+	uint8_t *c[CHEAP_BUDDY_LEAVES];
 	for (size_t i = 0; i < CHEAP_BUDDY_LEAVES; ++i) {
 		c[i] = (uint8_t *)buddy_malloc(a, sizeof(uint8_t));
 		ASSERT(c[i] != NULL);

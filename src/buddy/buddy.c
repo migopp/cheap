@@ -31,27 +31,88 @@ size_t order(size_t size) {
 #define PARENT(child) ((child - 1) / 2)
 #define SIBLING(child) (((child - 1) ^ 1) + 1)
 
-ssize_t alloc_order(buddy_allocator *a, size_t idx, size_t t_ord,
-					size_t c_ord) {
+void *alloc_order_h(buddy_allocator *a, uintptr_t l, uintptr_t r, size_t idx,
+					size_t c_ord, size_t t_ord) {
+	// Base case
 	if (t_ord == c_ord) {
-		if (a->buddy_md[idx]) return -1;
+		if (a->buddy_md[idx]) return NULL;
 		a->buddy_md[idx] = 1;
-		return idx;
+		return (void *)l;
 	}
 
-	ssize_t left = alloc_order(a, LEFT(idx), t_ord, c_ord - 1);
-	if (left != -1) {
+	// Block is in use -- as is
+	size_t l_idx = LEFT(idx);
+	size_t r_idx = RIGHT(idx);
+	if (a->buddy_md[idx] && !a->buddy_md[l_idx] && !a->buddy_md[r_idx])
+		return NULL;
+
+	// Try subtrees
+	uintptr_t m = l + (r - l) / 2;
+	void *left = alloc_order_h(a, l, m, l_idx, c_ord - 1, t_ord);
+	if (left != NULL) {
 		a->buddy_md[idx] = 1;
 		return left;
 	}
-
-	ssize_t right = alloc_order(a, RIGHT(idx), t_ord, c_ord - 1);
-	if (right != -1) {
+	void *right = alloc_order_h(a, m, r, r_idx, c_ord - 1, t_ord);
+	if (right != NULL) {
 		a->buddy_md[idx] = 1;
 		return right;
 	}
 
-	return -1;
+	// No space below
+	return NULL;
+}
+
+// Allocates space for a given order
+//
+// The result will be the appropriate pointer, or NULL
+// if there was an error.
+void *alloc_order(buddy_allocator *a, size_t t_ord) {
+	uintptr_t heap_start = (uintptr_t)a->buddy_heap;
+	uintptr_t heap_end = heap_start + CHEAP_BUDDY_TOTAL_SIZE;
+	return alloc_order_h(a, heap_start, heap_end, 0, CHEAP_BUDDY_ORDERS, t_ord);
+}
+
+void *ptr_given_index(buddy_allocator *a, size_t idx) {
+	// TODO:
+	(void)a;
+	(void)idx;
+	return NULL;
+}
+
+size_t index_given_ptr(buddy_allocator *a, void *ptr) {
+	// Get first index with matching ptr
+	//
+	// Binary search!
+	uintptr_t p = (uintptr_t)ptr;
+	uintptr_t l = (uintptr_t)a->buddy_heap;
+	uintptr_t r = l + CHEAP_BUDDY_TOTAL_SIZE;
+	size_t md = 0;
+	while (l <= r) {
+		if (l == p) break;
+		uintptr_t m = l + (r - l) / 2;
+		if (p == m) {
+			md = RIGHT(md);
+			l = m;
+			break;
+		} else if (p < m) {
+			md = LEFT(md);
+			r = m;
+		} else {
+			md = RIGHT(md);
+			l = m;
+		}
+	}
+
+	// Find deepest allocated node
+	//
+	// This will always be on the left
+	size_t md_l = LEFT(md);
+	while (md_l < CHEAP_BUDDY_BLOCKS && a->buddy_md[md_l]) {
+		md = md_l;
+		md_l = LEFT(md);
+	}
+	return md;
 }
 
 buddy_allocator *buddy_init(void) {
@@ -83,7 +144,7 @@ buddy_allocator *buddy_init(void) {
 	a->buddy_mallocc = 0;
 	a->buddy_freec = 0;
 
-	// Ensure buddy metadata is zero initialized
+	// Ensure buddy metadata is zero-initialized
 	bzero(a->buddy_md, CHEAP_BUDDY_BLOCKS);
 
 	return a;
@@ -100,15 +161,10 @@ void *buddy_malloc(buddy_allocator *a, size_t size) {
 	size_t t_ord = order(size);
 	if (t_ord > CHEAP_BUDDY_ORDERS) return NULL;
 
-	// Find space in tree via metadata
-	ssize_t alloc_idx = alloc_order(a, 0, t_ord, CHEAP_BUDDY_ORDERS);
-	if (alloc_idx == -1) return NULL;
+	// Find space in tree via metadata, then hand over
+	void *ptr = alloc_order(a, t_ord);
+	if (ptr != NULL) a->buddy_mallocc++;
 
-	// Convert metadata index to heap ptr
-	void *ptr = a->buddy_heap + alloc_idx * CHEAP_BUDDY_BLOCK_SIZE;
-
-	// Increment malloc count and hand over
-	a->buddy_mallocc++;
 	return ptr;
 }
 
@@ -117,8 +173,7 @@ void buddy_free(buddy_allocator *a, void *ptr) {
 	// (or assume for now it's an even block #)
 
 	// Find metadata bits
-	size_t offset = (uintptr_t)ptr - (uintptr_t)a->buddy_heap;
-	size_t idx = offset / CHEAP_BUDDY_BLOCK_SIZE;
+	size_t idx = index_given_ptr(a, ptr);
 	a->buddy_md[idx] = 0;
 
 	// Adjust metadata
