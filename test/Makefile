@@ -56,7 +56,4 @@ $(TEST_O): $(OBJ_DIR)/%.o: $(TEST_C)
 $(A_O):
 	$(MAKE) debug -C ..
 
-tclean: 
-	rm -rf $(BUILD_DIR)
-
-.PHONY: test tclean
+.PHONY: test
