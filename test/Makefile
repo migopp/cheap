@@ -1,14 +1,13 @@
 include ../Makefile
 
-BUILD_DIR = target
-OBJ_DIR   = $(BUILD_DIR)/obj
-OUT_DIR   = $(BUILD_DIR)/out
-RES_DIR   = $(BUILD_DIR)/results
+OBJ_DIR   = $(TARGET_DIR)/obj
+OUT_DIR   = $(TARGET_DIR)/out
+RES_DIR   = $(TARGET_DIR)/results
 A_DIR     = ../target/debug
 
 TEST_C    = $(wildcard *.c)
 TEST_O    = $(patsubst %.c, $(OBJ_DIR)/%.o, $(TEST_C))
-TEST_BIN  = $(patsubst %.c, $(BUILD_DIR)/%, $(TEST_C))
+TEST_BIN  = $(patsubst %.c, $(TARGET_DIR)/%, $(TEST_C))
 TEST_OUT  = $(patsubst %.c, $(OUT_DIR)/%.out, $(TEST_C))
 TEST_RES  = $(patsubst %.c, $(RES_DIR)/%.result, $(TEST_C))
 A_O       = $(A_DIR)/arena.o \
@@ -44,9 +43,9 @@ $(TEST_RES): $(RES_DIR)/%.result: $(TEST_OUT)
 
 $(TEST_OUT): $(OUT_DIR)/%.out: $(TEST_BIN)
 	@mkdir -p $(OUT_DIR)
-	@bash -c "./$(BUILD_DIR)/$* &> $(OUT_DIR)/$*.out"
+	@bash -c "./$(TARGET_DIR)/$* &> $(OUT_DIR)/$*.out"
 
-$(TEST_BIN): $(BUILD_DIR)/%: $(TEST_O) $(A_O)
+$(TEST_BIN): $(TARGET_DIR)/%: $(TEST_O) $(A_O)
 	$(CC) $(FLAGS) -o $@ $(OBJ_DIR)/$*.o $(A_O)
 
 $(TEST_O): $(OBJ_DIR)/%.o: $(TEST_C)
