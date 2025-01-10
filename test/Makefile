@@ -1,19 +1,24 @@
 include ../Makefile
 
-IFLAGS = -I../src
+BUILD_DIR = target
+OBJ_DIR   = $(BUILD_DIR)/obj
+OUT_DIR   = $(BUILD_DIR)/out
+RES_DIR   = $(BUILD_DIR)/results
+A_DIR     = ../target/debug
 
-TARGET_DIR = build
-OBJ_DIR    = $(TARGET_DIR)/obj
-OUT_DIR    = out
-RES_DIR    = results
-ALLOCS_DIR = ../target
+TEST_C    = $(wildcard *.c)
+TEST_O    = $(patsubst %.c, $(OBJ_DIR)/%.o, $(TEST_C))
+TEST_BIN  = $(patsubst %.c, $(BUILD_DIR)/%, $(TEST_C))
+TEST_OUT  = $(patsubst %.c, $(OUT_DIR)/%.out, $(TEST_C))
+TEST_RES  = $(patsubst %.c, $(RES_DIR)/%.result, $(TEST_C))
+A_O       = $(A_DIR)/arena.o \
+			$(A_DIR)/buddy.o \
+			$(A_DIR)/bump.o \
+			$(A_DIR)/fl.o \
+			$(A_DIR)/pool.o \
+			$(A_DIR)/stack.o
 
-TEST_C   = $(wildcard *.c)
-TEST_O   = $(patsubst %.c, $(OBJ_DIR)/%.o, $(TEST_C))
-TEST_BIN = $(patsubst %.c, $(TARGET_DIR)/%, $(TEST_C))
-TEST_OUT = $(patsubst %.c, $(OUT_DIR)/%.out, $(TEST_C))
-TEST_RES = $(patsubst %.c, $(RES_DIR)/%.result, $(TEST_C))
-ALLOCS_O = $(wildcard $(ALLOCS_DIR)/*.o)
+FLAGS     = -I../src $(D_FLAGS)
 
 test: $(TEST_RES)
 	@for res in $(TEST_RES); do \
@@ -39,16 +44,19 @@ $(TEST_RES): $(RES_DIR)/%.result: $(TEST_OUT)
 
 $(TEST_OUT): $(OUT_DIR)/%.out: $(TEST_BIN)
 	@mkdir -p $(OUT_DIR)
-	@bash -c "./$(TARGET_DIR)/$* &> $(OUT_DIR)/$*.out"
+	@bash -c "./$(BUILD_DIR)/$* &> $(OUT_DIR)/$*.out"
 
-$(TEST_BIN): $(TARGET_DIR)/%: $(TEST_O) $(ALLOCS_O)
-	$(CC) $(FLAGS) $(IFLAGS) -o $@ $(OBJ_DIR)/$*.o $(ALLOCS_O)
+$(TEST_BIN): $(BUILD_DIR)/%: $(TEST_O) $(A_O)
+	$(CC) $(FLAGS) -o $@ $(OBJ_DIR)/$*.o $(A_O)
 
 $(TEST_O): $(OBJ_DIR)/%.o: $(TEST_C)
 	@mkdir -p $(OBJ_DIR)
-	$(CC) -c $(FLAGS) $(IFLAGS) -o $@ $*.c
+	$(CC) -c $(FLAGS) -o $@ $*.c
 
-clean: 
-	rm -rf $(TARGET_DIR) $(OUT_DIR) $(RES_DIR)
+$(A_O):
+	$(MAKE) debug -C ..
 
-.PHONY: test clean
+tclean: 
+	rm -rf $(BUILD_DIR)
+
+.PHONY: test tclean

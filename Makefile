@@ -1,54 +1,36 @@
-CC      = cc
-FLAGS   = -Wall -Wextra -O0 -g -std=c99 \
-		  -fsanitize=undefined \
-		  -I./src
+CC          = cc
+D_FLAGS     = -Wall -Wextra -O0 -g -std=c99 -fsanitize=undefined -I./src
+R_FLAGS     = -O3 -std=c99 -I ./src
 
-SRC_DIR    = src
-BUMP_DIR   = $(SRC_DIR)/bump
-FL_DIR     = $(SRC_DIR)/fl
-STACK_DIR  = $(SRC_DIR)/stack
-POOL_DIR   = $(SRC_DIR)/pool
-BUDDY_DIR   = $(SRC_DIR)/buddy
-ARENA_DIR   = $(SRC_DIR)/arena
-TARGET_DIR = target
+TARGET_DIR  = target
+DEBUG_DIR   = $(TARGET_DIR)/debug
+RELEASE_DIR = $(TARGET_DIR)/release
 
-BUMP_C  = $(BUMP_DIR)/bump.c
-BUMP_O  = $(TARGET_DIR)/bump.o
-FL_C    = $(FL_DIR)/fl.c
-FL_O    = $(TARGET_DIR)/fl.o
-STACK_C = $(STACK_DIR)/stack.c
-STACK_O = $(TARGET_DIR)/stack.o
-POOL_C = $(POOL_DIR)/pool.c
-POOL_O = $(TARGET_DIR)/pool.o
-BUDDY_C = $(BUDDY_DIR)/buddy.c
-BUDDY_O = $(TARGET_DIR)/buddy.o
-ARENA_C = $(ARENA_DIR)/arena.c
-ARENA_O = $(TARGET_DIR)/arena.o
+SRC_DIR     = src
+SRC_C       = $(wildcard $(SRC_DIR)/*/*.c)
+DEBUG_O     = $(DEBUG_DIR)/arena.o \
+			  $(DEBUG_DIR)/buddy.o \
+			  $(DEBUG_DIR)/bump.o \
+			  $(DEBUG_DIR)/fl.o \
+			  $(DEBUG_DIR)/pool.o \
+			  $(DEBUG_DIR)/stack.o
+RELEASE_O   = $(patsubst $(DEBUG_DIR)/%.o, $(RELEASE_DIR)/%.o, $(DEBUG_O))
 
-cheap: $(BUMP_O) $(FL_O) $(STACK_O) $(POOL_O) $(BUDDY_O) $(ARENA_O)
+all: debug release
 
-$(BUMP_O): $(BUMP_C)
-	@mkdir -p $(TARGET_DIR)
-	$(CC) -c $(FLAGS) -o $@ $<
+debug: $(DEBUG_O)
 
-$(FL_O): $(FL_C)
-	@mkdir -p $(TARGET_DIR)
-	$(CC) -c $(FLAGS) -o $@ $<
+release: $(RELEASE_O)
 
-$(STACK_O): $(STACK_C)
-	@mkdir -p $(TARGET_DIR)
-	$(CC) -c $(FLAGS) -o $@ $<
+$(DEBUG_O): $(DEBUG_DIR)/%.o: $(SRC_C)
+	@mkdir -p $(dir $@)
+	$(CC) -c $(D_FLAGS) -o $@ $(SRC_DIR)/$*/$*.c
 
-$(POOL_O): $(POOL_C)
-	@mkdir -p $(TARGET_DIR)
-	$(CC) -c $(FLAGS) -o $@ $<
+$(RELEASE_O): $(RELEASE_DIR)/%.o: $(SRC_C)
+	@mkdir -p $(dir $@)
+	$(CC) -c $(R_FLAGS) -o $@ $(SRC_DIR)/$*/$*.c
 
-$(BUDDY_O): $(BUDDY_C)
-	@mkdir -p $(TARGET_DIR)
-	$(CC) -c $(FLAGS) -o $@ $<
+clean:
+	rm -rf $(TARGET_DIR)
 
-$(ARENA_O): $(ARENA_C)
-	@mkdir -p $(TARGET_DIR)
-	$(CC) -c $(FLAGS) -o $@ $<
-
-.PHONY: cheap
+.PHONY: cheap debug release clean
