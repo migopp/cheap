@@ -13,15 +13,15 @@ struct stack_allocator {
 	size_t stack_freec;
 };
 
-bool stack_in_bounds_left(stack_allocator *a, void *p) {
+static bool stack_in_bounds_left(stack_allocator *a, void *p) {
 	return p >= (void *)a->stack_heap;
 }
 
-bool stack_in_bounds_right(stack_allocator *a, void *p) {
+static bool stack_in_bounds_right(stack_allocator *a, void *p) {
 	return p < (void *)&a->stack_heap[CHEAP_STACK_SIZE];
 }
 
-bool stack_in_bounds(stack_allocator *a, void *p) {
+static bool stack_in_bounds(stack_allocator *a, void *p) {
 	return stack_in_bounds_left(a, p) && stack_in_bounds_right(a, p);
 }
 

@@ -16,7 +16,7 @@ struct buddy_allocator {
 	size_t buddy_freec;
 };
 
-size_t order(size_t size) {
+static size_t order(size_t size) {
 	size_t ord = 0, factor = 1;
 	while (size > (factor * CHEAP_BUDDY_BLOCK_SIZE)) {
 		ord++;
@@ -31,8 +31,8 @@ size_t order(size_t size) {
 #define PARENT(child) ((child - 1) / 2)
 #define SIBLING(child) (((child - 1) ^ 1) + 1)
 
-void *alloc_order_h(buddy_allocator *a, uintptr_t l, uintptr_t r, size_t idx,
-					size_t c_ord, size_t t_ord) {
+static void *alloc_order_h(buddy_allocator *a, uintptr_t l, uintptr_t r,
+						   size_t idx, size_t c_ord, size_t t_ord) {
 	// Base case
 	if (t_ord == c_ord) {
 		if (a->buddy_md[idx]) return NULL;
@@ -67,20 +67,13 @@ void *alloc_order_h(buddy_allocator *a, uintptr_t l, uintptr_t r, size_t idx,
 //
 // The result will be the appropriate pointer, or NULL
 // if there was an error.
-void *alloc_order(buddy_allocator *a, size_t t_ord) {
+static void *alloc_order(buddy_allocator *a, size_t t_ord) {
 	uintptr_t heap_start = (uintptr_t)a->buddy_heap;
 	uintptr_t heap_end = heap_start + CHEAP_BUDDY_TOTAL_SIZE;
 	return alloc_order_h(a, heap_start, heap_end, 0, CHEAP_BUDDY_ORDERS, t_ord);
 }
 
-void *ptr_given_index(buddy_allocator *a, size_t idx) {
-	// TODO:
-	(void)a;
-	(void)idx;
-	return NULL;
-}
-
-size_t index_given_ptr(buddy_allocator *a, void *ptr) {
+static size_t index_given_ptr(buddy_allocator *a, void *ptr) {
 	// Get first index with matching ptr
 	//
 	// Binary search!

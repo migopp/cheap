@@ -35,7 +35,7 @@ struct pool_allocator {
 
 typedef enum PoolSize { SMALL, MEDIUM, LARGE, NO_FIT } PoolSize;
 
-PoolSize determine_size(size_t size) {
+static PoolSize determine_size(size_t size) {
 	if (size <= CHEAP_POOL_S) {
 		return SMALL;
 	} else if (size <= CHEAP_POOL_M) {

@@ -36,27 +36,27 @@ struct fl_allocator {
 	size_t fl_freec;
 };
 
-size_t fl_frame_down(size_t addr) {
+static size_t fl_frame_down(size_t addr) {
 	return (addr / CHEAP_FL_FRAME_SIZE) * CHEAP_FL_FRAME_SIZE;
 }
 
-size_t fl_frame_up(size_t addr) {
+static size_t fl_frame_up(size_t addr) {
 	return fl_frame_down(addr + CHEAP_FL_FRAME_SIZE - 1);
 }
 
-bool fl_in_bounds_left(fl_allocator *f, void *p) {
+static bool fl_in_bounds_left(fl_allocator *f, void *p) {
 	return p >= (void *)f->fl_heap;
 }
 
-bool fl_in_bounds_right(fl_allocator *f, void *p) {
+static bool fl_in_bounds_right(fl_allocator *f, void *p) {
 	return p < (void *)&f->fl_heap[CHEAP_FL_SIZE];
 }
 
-bool fl_in_bounds(fl_allocator *f, void *p) {
+static bool fl_in_bounds(fl_allocator *f, void *p) {
 	return fl_in_bounds_left(f, p) && fl_in_bounds_right(f, p);
 }
 
-bool fl_is_free(fl_head_md *head) { return head->flb_size > 0; }
+static bool fl_is_free(fl_head_md *head) { return head->flb_size > 0; }
 
 fl_allocator *fl_init(void) {
 	// Make space for the actual allocator object
