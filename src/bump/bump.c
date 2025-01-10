@@ -45,12 +45,16 @@ bump_allocator *bump_init(void) {
 }
 
 void bump_deinit(bump_allocator *a) {
+	if (!a) return;
+
 	// Unmap our segments
 	munmap(a->bmp_heap, CHEAP_BUMP_SIZE);
 	munmap(a, sizeof(bump_allocator));
 }
 
 void *bump_malloc(bump_allocator *a, size_t size) {
+	if (!a) return NULL;
+
 	// Alas, for the bump allocator this comes too soon!
 	if (a->bmp_idx + size > CHEAP_BUMP_SIZE) return NULL;
 
@@ -61,4 +65,7 @@ void *bump_malloc(bump_allocator *a, size_t size) {
 	return ptr;
 }
 
-size_t bump_malloc_count(bump_allocator *a) { return a->bmp_mallocc; }
+size_t bump_malloc_count(bump_allocator *a) {
+	if (!a) return 0;
+	return a->bmp_mallocc;
+}

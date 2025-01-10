@@ -103,12 +103,16 @@ fl_allocator *fl_init(void) {
 }
 
 void fl_deinit(fl_allocator *a) {
+	if (!a) return;
+
 	// Unmap our segments
 	munmap(a->fl_heap, CHEAP_FL_SIZE);
 	munmap(a, sizeof(fl_allocator));
 }
 
 void *fl_malloc(fl_allocator *a, size_t size) {
+	if (!a) return NULL;
+
 	// Align size to 8B
 	size = fl_frame_up(size);
 
@@ -167,6 +171,9 @@ void *fl_malloc(fl_allocator *a, size_t size) {
 }
 
 void fl_free(fl_allocator *a, void *ptr) {
+	if (!a) return;
+	if (!ptr) return;
+
 	// Validate
 	uint8_t *n_ptr = (uint8_t *)ptr;
 	fl_head_md *head = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
@@ -213,6 +220,12 @@ void fl_free(fl_allocator *a, void *ptr) {
 	a->fl_freec++;
 }
 
-size_t fl_malloc_count(fl_allocator *a) { return a->fl_mallocc; }
+size_t fl_malloc_count(fl_allocator *a) {
+	if (!a) return 0;
+	return a->fl_mallocc;
+}
 
-size_t fl_free_count(fl_allocator *a) { return a->fl_freec; }
+size_t fl_free_count(fl_allocator *a) {
+	if (!a) return 0;
+	return a->fl_freec;
+}

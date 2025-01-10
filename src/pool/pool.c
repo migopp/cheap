@@ -136,6 +136,8 @@ pool_allocator *pool_init(void) {
 }
 
 void pool_deinit(pool_allocator *a) {
+	if (!a) return;
+
 	// Unmap our segments
 	munmap(a->pool_sheap, CHEAP_POOL_SIZE);
 	munmap(a->pool_mheap, CHEAP_POOL_SIZE);
@@ -144,6 +146,8 @@ void pool_deinit(pool_allocator *a) {
 }
 
 void *pool_malloc(pool_allocator *a, size_t size) {
+	if (!a) return NULL;
+
 	// Find and grab block from correct free list
 	fl_head_md *h = NULL;
 	PoolSize ps = determine_size(size);
@@ -176,6 +180,8 @@ void *pool_malloc(pool_allocator *a, size_t size) {
 }
 
 void pool_free(pool_allocator *a, void *ptr) {
+	if (!a) return;
+
 	// Get metadata head
 	uint8_t *n_ptr = (uint8_t *)ptr;
 	fl_head_md *h = (fl_head_md *)(n_ptr - sizeof(fl_head_md));
@@ -203,6 +209,12 @@ void pool_free(pool_allocator *a, void *ptr) {
 	a->pool_freec++;
 }
 
-size_t pool_malloc_count(pool_allocator *a) { return a->pool_mallocc; }
+size_t pool_malloc_count(pool_allocator *a) {
+	if (!a) return 0;
+	return a->pool_mallocc;
+}
 
-size_t pool_free_count(pool_allocator *a) { return a->pool_freec; }
+size_t pool_free_count(pool_allocator *a) {
+	if (!a) return 0;
+	return a->pool_freec;
+}

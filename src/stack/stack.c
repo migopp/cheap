@@ -59,12 +59,16 @@ stack_allocator *stack_init(void) {
 }
 
 void stack_deinit(stack_allocator *a) {
+	if (!a) return;
+
 	// Unmap our segments
 	munmap(a->stack_heap, CHEAP_STACK_SIZE);
 	munmap(a, sizeof(stack_allocator));
 }
 
 void *stack_malloc(stack_allocator *a, size_t size) {
+	if (!a) return NULL;
+
 	// Check for space
 	if (!stack_in_bounds_right(a, a->stack_sp + size)) return NULL;
 
@@ -76,6 +80,9 @@ void *stack_malloc(stack_allocator *a, size_t size) {
 }
 
 void stack_free(stack_allocator *a, void *ptr) {
+	if (!a) return;
+	if (!ptr) return;
+
 	// Check bounds
 	if (!stack_in_bounds(a, ptr)) return;
 
@@ -84,6 +91,12 @@ void stack_free(stack_allocator *a, void *ptr) {
 	a->stack_freec++;
 }
 
-size_t stack_malloc_count(stack_allocator *a) { return a->stack_mallocc; }
+size_t stack_malloc_count(stack_allocator *a) {
+	if (!a) return 0;
+	return a->stack_mallocc;
+}
 
-size_t stack_free_count(stack_allocator *a) { return a->stack_freec; }
+size_t stack_free_count(stack_allocator *a) {
+	if (!a) return 0;
+	return a->stack_freec;
+}

@@ -144,12 +144,16 @@ buddy_allocator *buddy_init(void) {
 }
 
 void buddy_deinit(buddy_allocator *a) {
+	if (!a) return;
+
 	// Unmap our segments
 	munmap(a->buddy_heap, CHEAP_BUDDY_TOTAL_SIZE);
 	munmap(a, sizeof(buddy_allocator));
 }
 
 void *buddy_malloc(buddy_allocator *a, size_t size) {
+	if (!a) return NULL;
+
 	// Determine order
 	size_t t_ord = order(size);
 	if (t_ord > CHEAP_BUDDY_ORDERS) return NULL;
@@ -162,8 +166,8 @@ void *buddy_malloc(buddy_allocator *a, size_t size) {
 }
 
 void buddy_free(buddy_allocator *a, void *ptr) {
-	// Round down to nearest block
-	// (or assume for now it's an even block #)
+	if (!a) return;
+	if (!ptr) return;
 
 	// Find metadata bits
 	size_t idx = index_given_ptr(a, ptr);
@@ -184,6 +188,12 @@ void buddy_free(buddy_allocator *a, void *ptr) {
 	a->buddy_freec++;
 }
 
-size_t buddy_malloc_count(buddy_allocator *a) { return a->buddy_mallocc; }
+size_t buddy_malloc_count(buddy_allocator *a) {
+	if (!a) return 0;
+	return a->buddy_mallocc;
+}
 
-size_t buddy_free_count(buddy_allocator *a) { return a->buddy_freec; }
+size_t buddy_free_count(buddy_allocator *a) {
+	if (!a) return 0;
+	return a->buddy_freec;
+}
