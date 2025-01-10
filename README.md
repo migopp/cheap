@@ -2,4 +2,4 @@
 
 Simple C heap.
 
-![CI Status](https://img.shields.io/github/workflow/status/migopp/cheap/CI/main?label=passing&style=flat)
+[![CI](https://github.com/migopp/cheap/actions/workflows/ci.yml/badge.svg)](https://github.com/migopp/cheap/actions/workflows/ci.yml)
