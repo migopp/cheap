@@ -14,9 +14,9 @@ struct arena_allocator {
 arena_allocator *arena_init(AllocatorType type) {
 	// Make space for the actual allocator object
 	//
-	// Would use `sbrk` but its depricated? `mmap` seems like a
-	// tad bit of a waste, since it'll give us a whole page,
-	// but oh well.
+	// Would use `sbrk` but its depricated on OSX? `mmap`
+	// seems like a tad bit of a waste, since it'll give
+	// us a whole page, but oh well.
 	arena_allocator *a =
 		mmap(NULL, sizeof(arena_allocator), PROT_READ | PROT_WRITE,
 			 MAP_ANON | MAP_PRIVATE, -1, 0);

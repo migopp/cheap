@@ -108,10 +108,6 @@ static size_t index_given_ptr(buddy_allocator *a, void *ptr) {
 
 buddy_allocator *buddy_init(void) {
 	// Make space for the actual allocator object
-	//
-	// Would use `sbrk` but its depricated? `mmap` seems like a
-	// tad bit of a waste, since it'll give us a whole page,
-	// but oh well.
 	buddy_allocator *a =
 		mmap(NULL, sizeof(buddy_allocator), PROT_READ | PROT_WRITE,
 			 MAP_ANON | MAP_PRIVATE, -1, 0);

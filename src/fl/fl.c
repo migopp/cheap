@@ -58,10 +58,6 @@ static bool fl_is_free(fl_head_md *head) { return head->flb_size > 0; }
 
 fl_allocator *fl_init(void) {
 	// Make space for the actual allocator object
-	//
-	// Would use `sbrk` but its depricated? `mmap` seems like a
-	// tad bit of a waste, since it'll give us a whole page,
-	// but oh well.
 	fl_allocator *a = mmap(NULL, sizeof(fl_allocator), PROT_READ | PROT_WRITE,
 						   MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (a == MAP_FAILED) {
@@ -69,8 +65,6 @@ fl_allocator *fl_init(void) {
 	}
 
 	// Create heap
-	//
-	// Now, this is more of a job for `mmap`.
 	uint8_t *h = mmap(NULL, CHEAP_FL_SIZE, PROT_READ | PROT_WRITE,
 					  MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (h == MAP_FAILED) {

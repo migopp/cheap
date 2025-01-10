@@ -12,10 +12,6 @@ struct bump_allocator {
 
 bump_allocator *bump_init(void) {
 	// Make space for the actual allocator object
-	//
-	// Would use `sbrk` but its depricated? `mmap` seems like a
-	// tad bit of a waste, since it'll give us a whole page,
-	// but oh well.
 	bump_allocator *a =
 		mmap(NULL, sizeof(bump_allocator), PROT_READ | PROT_WRITE,
 			 MAP_ANON | MAP_PRIVATE, -1, 0);
@@ -24,8 +20,6 @@ bump_allocator *bump_init(void) {
 	}
 
 	// Create heap
-	//
-	// Now, this is more of a job for `mmap`.
 	uint8_t *h = mmap(NULL, CHEAP_BUMP_SIZE, PROT_READ | PROT_WRITE,
 					  MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (h == MAP_FAILED) {

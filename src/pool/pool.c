@@ -47,10 +47,6 @@ static PoolSize determine_size(size_t size) {
 
 pool_allocator *pool_init(void) {
 	// Make space for the actual allocator object
-	//
-	// Would use `sbrk` but its depricated? `mmap` seems like a
-	// tad bit of a waste, since it'll give us a whole page,
-	// but oh well.
 	pool_allocator *a =
 		mmap(NULL, sizeof(pool_allocator), PROT_READ | PROT_WRITE,
 			 MAP_ANON | MAP_PRIVATE, -1, 0);
@@ -59,8 +55,6 @@ pool_allocator *pool_init(void) {
 	}
 
 	// Create heaps
-	//
-	// Now, this is more of a job for `mmap`.
 	uint8_t *s = mmap(NULL, CHEAP_POOL_SIZE, PROT_READ | PROT_WRITE,
 					  MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (s == MAP_FAILED) {
