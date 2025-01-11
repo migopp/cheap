@@ -3,16 +3,8 @@
 #include <stdint.h>
 #include <sys/mman.h>
 
-#define CHEAP_BUDDY_BLOCKS ((1 << (CHEAP_BUDDY_ORDERS + 1)) - 1)
 #define CHEAP_BUDDY_LEAVES (1 << CHEAP_BUDDY_ORDERS)
 #define CHEAP_BUDDY_TOTAL_SIZE (CHEAP_BUDDY_BLOCK_SIZE * CHEAP_BUDDY_LEAVES)
-
-struct buddy_allocator {
-	uint8_t buddy_md[CHEAP_BUDDY_BLOCKS];
-	uint8_t *buddy_heap;
-	size_t buddy_mallocc;
-	size_t buddy_freec;
-};
 
 static size_t order(size_t size) {
 	size_t ord = 0, factor = 1;
@@ -106,14 +98,10 @@ static size_t index_given_ptr(buddy_allocator *a, void *ptr) {
 	return md;
 }
 
-buddy_allocator *buddy_init(void) {
+buddy_allocator buddy_init(void) {
 	// Make space for the actual allocator object
-	buddy_allocator *a =
-		mmap(NULL, sizeof(buddy_allocator), PROT_READ | PROT_WRITE,
-			 MAP_ANON | MAP_PRIVATE, -1, 0);
-	if (a == MAP_FAILED) {
-		return NULL;
-	}
+	buddy_allocator a;
+	a.buddy_valid = 0;
 
 	// Create heap
 	//
@@ -121,31 +109,30 @@ buddy_allocator *buddy_init(void) {
 	uint8_t *h = mmap(NULL, CHEAP_BUDDY_TOTAL_SIZE, PROT_READ | PROT_WRITE,
 					  MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (h == MAP_FAILED) {
-		munmap(a, sizeof(buddy_allocator));
-		return NULL;
+		return a;
 	}
 
 	// Init heap data
-	a->buddy_heap = h;
-	a->buddy_mallocc = 0;
-	a->buddy_freec = 0;
+	a.buddy_valid = 1;
+	a.buddy_heap = h;
+	a.buddy_mallocc = 0;
+	a.buddy_freec = 0;
 
 	// Ensure buddy metadata is zero-initialized
-	memset(a->buddy_md, 0, CHEAP_BUDDY_BLOCKS);
+	memset(a.buddy_md, 0, CHEAP_BUDDY_BLOCKS);
 
 	return a;
 }
 
 void buddy_deinit(buddy_allocator *a) {
-	if (!a) return;
+	if (!a || !a->buddy_valid) return;
 
 	// Unmap our segments
 	munmap(a->buddy_heap, CHEAP_BUDDY_TOTAL_SIZE);
-	munmap(a, sizeof(buddy_allocator));
 }
 
 void *buddy_malloc(buddy_allocator *a, size_t size) {
-	if (!a) return NULL;
+	if (!a || !a->buddy_valid) return NULL;
 
 	// Determine order
 	size_t t_ord = order(size);
@@ -159,7 +146,7 @@ void *buddy_malloc(buddy_allocator *a, size_t size) {
 }
 
 void buddy_free(buddy_allocator *a, void *ptr) {
-	if (!a) return;
+	if (!a || !a->buddy_valid) return;
 	if (!ptr) return;
 
 	// Find metadata bits
@@ -182,11 +169,11 @@ void buddy_free(buddy_allocator *a, void *ptr) {
 }
 
 size_t buddy_malloc_count(buddy_allocator *a) {
-	if (!a) return 0;
+	if (!a || !a->buddy_valid) return 0;
 	return a->buddy_mallocc;
 }
 
 size_t buddy_free_count(buddy_allocator *a) {
-	if (!a) return 0;
+	if (!a || !a->buddy_valid) return 0;
 	return a->buddy_freec;
 }

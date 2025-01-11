@@ -13,7 +13,7 @@ Peek at `src/arena/arena.h` for the general interface. In general, note the foll
 
 ```c
 // Initialize an arena with `AllocatorType`
-arena_allocator *arena_init(AllocatorType);
+arena_allocator arena_init(AllocatorType);
 
 // Allocate memory in the given arena with appropriate size
 void *arena_malloc(arena_allocator *, size_t);

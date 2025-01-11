@@ -6,34 +6,7 @@
 #include <sys/mman.h>
 #include <stdbool.h>
 
-// Each free list block has the following layout in memory:
-//
-//   8B   8B                 nB                8B
-// ________________________________________________
-// | sz | nx |              data             | he |
-// ------------------------------------------------
-//
-// Where `sz`, `nx`, and `he` are metadata, and:
-// 		- `sz` is the size of `data`,
-// 		- `nx` is a pointer to the _next_ free block,
-// 		- `he` is a pointer to the head of the block.
-//
-// `sz` is negative to indicate that a block is allocated.
-typedef struct fl_head_md {
-	ssize_t flb_size;			  // sz
-	struct fl_head_md *flb_next;  // nx
-} fl_head_md;
-typedef struct fl_tail_md {
-	fl_head_md *flb_head;  // he
-} fl_tail_md;
 const size_t CHEAP_FL_MD_SIZE = sizeof(fl_head_md) + sizeof(fl_tail_md);
-
-struct fl_allocator {
-	uint8_t *fl_heap;
-	fl_head_md *fl_first;
-	size_t fl_mallocc;
-	size_t fl_freec;
-};
 
 static size_t fl_frame_down(size_t addr) {
 	return (addr / CHEAP_FL_FRAME_SIZE) * CHEAP_FL_FRAME_SIZE;
@@ -53,26 +26,21 @@ static bool fl_in_bounds(fl_allocator *f, void *p) {
 
 static bool fl_is_free(fl_head_md *head) { return head->flb_size > 0; }
 
-fl_allocator *fl_init(void) {
+fl_allocator fl_init(void) {
 	// Make space for the actual allocator object
-	fl_allocator *a = mmap(NULL, sizeof(fl_allocator), PROT_READ | PROT_WRITE,
-						   MAP_ANON | MAP_PRIVATE, -1, 0);
-	if (a == MAP_FAILED) {
-		return NULL;
-	}
+	fl_allocator a;
+	a.fl_valid = 0;
 
 	// Create heap
 	uint8_t *h = mmap(NULL, CHEAP_FL_SIZE, PROT_READ | PROT_WRITE,
 					  MAP_ANON | MAP_PRIVATE, -1, 0);
-	if (h == MAP_FAILED) {
-		munmap(a, sizeof(fl_allocator));
-		return NULL;
-	}
+	if (h == MAP_FAILED) return a;
 
 	// Init heap data
-	a->fl_heap = h;
-	a->fl_mallocc = 0;
-	a->fl_freec = 0;
+	a.fl_valid = 1;
+	a.fl_heap = h;
+	a.fl_mallocc = 0;
+	a.fl_freec = 0;
 
 	// Head metadata
 	fl_head_md *cheap_fl_head = (fl_head_md *)h;
@@ -85,21 +53,20 @@ fl_allocator *fl_init(void) {
 	cheap_fl_tail->flb_head = cheap_fl_head;
 
 	// Init free list
-	a->fl_first = cheap_fl_head;
+	a.fl_first = cheap_fl_head;
 
 	return a;
 }
 
 void fl_deinit(fl_allocator *a) {
-	if (!a) return;
+	if (!a || !a->fl_valid) return;
 
 	// Unmap our segments
 	munmap(a->fl_heap, CHEAP_FL_SIZE);
-	munmap(a, sizeof(fl_allocator));
 }
 
 void *fl_malloc(fl_allocator *a, size_t size) {
-	if (!a) return NULL;
+	if (!a || !a->fl_valid) return NULL;
 
 	// Round up size to stay aligned
 	if (size > SIZE_MAX - CHEAP_FL_FRAME_SIZE + 1) return NULL;
@@ -160,7 +127,7 @@ void *fl_malloc(fl_allocator *a, size_t size) {
 }
 
 void fl_free(fl_allocator *a, void *ptr) {
-	if (!a) return;
+	if (!a || !a->fl_valid) return;
 	if (!ptr) return;
 
 	// Validate
@@ -210,11 +177,11 @@ void fl_free(fl_allocator *a, void *ptr) {
 }
 
 size_t fl_malloc_count(fl_allocator *a) {
-	if (!a) return 0;
+	if (!a || !a->fl_valid) return 0;
 	return a->fl_mallocc;
 }
 
 size_t fl_free_count(fl_allocator *a) {
-	if (!a) return 0;
+	if (!a || !a->fl_valid) return 0;
 	return a->fl_freec;
 }

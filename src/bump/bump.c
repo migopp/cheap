@@ -5,51 +5,40 @@
 #include <stdio.h>
 #include <sys/mman.h>
 
-struct bump_allocator {
-	uint8_t *bmp_heap;
-	size_t bmp_idx;
-	size_t bmp_mallocc;
-};
-
 static size_t bump_frame_down(size_t addr) {
 	return (addr / CHEAP_BUMP_FRAME_SIZE) * CHEAP_BUMP_FRAME_SIZE;
 }
 
-bump_allocator *bump_init(void) {
+bump_allocator bump_init(void) {
 	// Make space for the actual allocator object
-	bump_allocator *a =
-		mmap(NULL, sizeof(bump_allocator), PROT_READ | PROT_WRITE,
-			 MAP_ANON | MAP_PRIVATE, -1, 0);
-	if (a == MAP_FAILED) {
-		return NULL;
-	}
+	bump_allocator a;
+	a.bump_valid = 0;
 
 	// Create heap
 	uint8_t *h = mmap(NULL, CHEAP_BUMP_SIZE, PROT_READ | PROT_WRITE,
 					  MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (h == MAP_FAILED) {
-		munmap(a, sizeof(bump_allocator));
-		return NULL;
+		return a;
 	}
 
 	// Init heap data
-	a->bmp_heap = h;
-	a->bmp_idx = 0;
-	a->bmp_mallocc = 0;
+	a.bump_valid = 1;
+	a.bmp_heap = h;
+	a.bmp_idx = 0;
+	a.bmp_mallocc = 0;
 
 	return a;
 }
 
 void bump_deinit(bump_allocator *a) {
-	if (!a) return;
+	if (!a || !a->bump_valid) return;
 
 	// Unmap our segments
 	munmap(a->bmp_heap, CHEAP_BUMP_SIZE);
-	munmap(a, sizeof(bump_allocator));
 }
 
 void *bump_malloc(bump_allocator *a, size_t size) {
-	if (!a) return NULL;
+	if (!a || !a->bump_valid) return NULL;
 
 	// Round up size to stay aligned
 	if (size > SIZE_MAX - CHEAP_BUMP_FRAME_SIZE + 1) return NULL;
@@ -69,6 +58,6 @@ void *bump_malloc(bump_allocator *a, size_t size) {
 }
 
 size_t bump_malloc_count(bump_allocator *a) {
-	if (!a) return 0;
+	if (!a || !a->bump_valid) return 0;
 	return a->bmp_mallocc;
 }

@@ -6,62 +6,60 @@
 #include "stack/stack.h"
 #include <sys/mman.h>
 
-struct arena_allocator {
-	AllocatorType a_type;
-	void *a_alloc;
-};
-
-arena_allocator *arena_init(AllocatorType type) {
-	// Make space for the actual allocator object
-	//
-	// Would use `sbrk` but its depricated on OSX? `mmap`
-	// seems like a tad bit of a waste, since it'll give
-	// us a whole page, but oh well.
-	arena_allocator *a =
-		mmap(NULL, sizeof(arena_allocator), PROT_READ | PROT_WRITE,
-			 MAP_ANON | MAP_PRIVATE, -1, 0);
-	if (a == MAP_FAILED) {
-		return NULL;
-	}
+arena_allocator arena_init(AllocatorType type) {
+	arena_allocator a;
+	a.a_type = NONE;
 
 	// Create `a_alloc`, the underlying allocator
 	void *na = NULL;
 	switch (type) {
 		case CHEAP_BUDDY: {
-			na = (void *)buddy_init();
+			buddy_allocator ia = buddy_init();
+			buddy_allocator *aa = buddy_malloc(&ia, sizeof(buddy_allocator));
+			*aa = ia;
+			na = (void *)aa;
 			break;
 		}
 		case CHEAP_BUMP: {
-			na = (void *)bump_init();
+			bump_allocator ia = bump_init();
+			bump_allocator *aa = bump_malloc(&ia, sizeof(bump_allocator));
+			*aa = ia;
+			na = (void *)aa;
 			break;
 		}
 		case CHEAP_FL: {
-			na = (void *)fl_init();
+			fl_allocator ia = fl_init();
+			fl_allocator *aa = fl_malloc(&ia, sizeof(fl_allocator));
+			*aa = ia;
+			na = (void *)aa;
 			break;
 		}
 		case CHEAP_POOL: {
-			na = (void *)pool_init();
+			pool_allocator ia = pool_init();
+			pool_allocator *aa = pool_malloc(&ia, sizeof(pool_allocator));
+			*aa = ia;
+			na = (void *)aa;
 			break;
 		}
 		case CHEAP_STACK: {
-			na = (void *)stack_init();
+			stack_allocator ia = stack_init();
+			stack_allocator *aa = stack_malloc(&ia, sizeof(stack_allocator));
+			*aa = ia;
+			na = (void *)aa;
 			break;
 		}
 		default:
-			return NULL;
+			return a;
 	}
 
-	// `init` failed
-	if (na == NULL) return NULL;
-
 	// Save the underlying allocator
-	a->a_type = type;
-	a->a_alloc = na;
+	a.a_type = type;
+	a.a_alloc = na;
 	return a;
 }
 
 void arena_deinit(arena_allocator *a) {
-	if (!a) return;
+	if (!a || a->a_type == NONE) return;
 
 	// Call `deinit` manually
 	switch (a->a_type) {
@@ -86,7 +84,7 @@ void arena_deinit(arena_allocator *a) {
 }
 
 void *arena_malloc(arena_allocator *a, size_t size) {
-	if (!a) return NULL;
+	if (!a || a->a_type == NONE) return NULL;
 
 	// Call `malloc` manually
 	switch (a->a_type) {
@@ -106,7 +104,7 @@ void *arena_malloc(arena_allocator *a, size_t size) {
 }
 
 void arena_free(arena_allocator *a, void *ptr) {
-	if (!a) return;
+	if (!a || a->a_type == NONE) return;
 
 	// Call `free` manually
 	switch (a->a_type) {
@@ -128,7 +126,7 @@ void arena_free(arena_allocator *a, void *ptr) {
 }
 
 size_t arena_malloc_count(arena_allocator *a) {
-	if (!a) return 0;
+	if (!a || a->a_type == NONE) return 0;
 
 	// You know the drill...
 	switch (a->a_type) {
@@ -148,7 +146,7 @@ size_t arena_malloc_count(arena_allocator *a) {
 }
 
 size_t arena_free_count(arena_allocator *a) {
-	if (!a) return 0;
+	if (!a || a->a_type == NONE) return 0;
 
 	// Again...
 	switch (a->a_type) {

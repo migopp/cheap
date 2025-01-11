@@ -19,52 +19,54 @@
 
 int main() {
 	printf("`arena_test` init\n");
-	arena_allocator *buddy = arena_init(CHEAP_BUDDY);
-	ASSERT(buddy != NULL);
-	arena_allocator *bump = arena_init(CHEAP_BUMP);
-	ASSERT(bump != NULL);
+	arena_allocator buddy = arena_init(CHEAP_BUDDY);
+	ASSERT(buddy.a_type != NONE);
+	arena_allocator bump = arena_init(CHEAP_BUMP);
+	ASSERT(bump.a_type != NONE);
 
 	// Fill up `buddy`
 	const size_t CHEAP_BUDDY_TOTAL_SIZE =
-		CHEAP_BUDDY_BLOCK_SIZE * (1 << CHEAP_BUDDY_ORDERS);
-	uint8_t *f = (uint8_t *)arena_malloc(buddy, CHEAP_BUDDY_TOTAL_SIZE);
+		CHEAP_BUDDY_BLOCK_SIZE * (1 << (CHEAP_BUDDY_ORDERS - 1));
+	uint8_t *f = (uint8_t *)arena_malloc(&buddy, CHEAP_BUDDY_TOTAL_SIZE);
 	ASSERT(f != NULL);
 
 	// Allocate a bit on `bump`
-	uint8_t *n = (uint8_t *)arena_malloc(bump, CHEAP_BUMP_SIZE);
+	uint8_t *n = (uint8_t *)arena_malloc(
+		&bump, CHEAP_BUMP_SIZE - sizeof(bump_allocator));
 	ASSERT(n != NULL);
 
 	// Free on `buddy`
-	arena_free(buddy, f);
+	arena_free(&buddy, f);
 	// Then realloc
-	uint8_t *m = (uint8_t *)arena_malloc(buddy, CHEAP_BUDDY_TOTAL_SIZE);
+	uint8_t *m = (uint8_t *)arena_malloc(&buddy, CHEAP_BUDDY_TOTAL_SIZE);
 	ASSERT(f == m);
 
 	// And on `bump`...
 	// But, here it doesn't do anything!
-	arena_free(bump, n);
-	uint8_t *o = (uint8_t *)arena_malloc(bump, CHEAP_BUMP_SIZE);
+	arena_free(&bump, n);
+	uint8_t *o = (uint8_t *)arena_malloc(
+		&bump, CHEAP_BUMP_SIZE - sizeof(bump_allocator));
 	ASSERT(o == NULL);
 
 	// Match counts
 	size_t buddy_mallocc;
-	if ((buddy_mallocc = arena_malloc_count(buddy)) != 2) {
+	if ((buddy_mallocc = arena_malloc_count(&buddy)) != 3) {
 		fprintf(stderr, "wrong `buddy_mallocc`: %zu\n", buddy_mallocc);
 	}
 	size_t buddy_freec;
-	if ((buddy_freec = arena_free_count(buddy)) != 1) {
+	if ((buddy_freec = arena_free_count(&buddy)) != 1) {
 		fprintf(stderr, "wrong `buddy_freec`: %zu\n", buddy_freec);
 	}
 	size_t bump_mallocc;
-	if ((bump_mallocc = arena_malloc_count(bump)) != 1) {
+	if ((bump_mallocc = arena_malloc_count(&bump)) != 2) {
 		fprintf(stderr, "wrong `bump_mallocc`: %zu\n", bump_mallocc);
 	}
 	size_t bump_freec;
-	if ((bump_freec = arena_free_count(bump)) != 0) {
+	if ((bump_freec = arena_free_count(&bump)) != 0) {
 		fprintf(stderr, "wrong `bump_freec`: %zu\n", bump_freec);
 	}
 
-	arena_deinit(buddy);
-	arena_deinit(bump);
+	arena_deinit(&buddy);
+	arena_deinit(&bump);
 	printf("`arena_test` deinit\n");
 }

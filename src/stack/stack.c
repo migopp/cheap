@@ -5,13 +5,6 @@
 #include <stdbool.h>
 #include <sys/mman.h>
 
-struct stack_allocator {
-	uint8_t *stack_heap;
-	uint8_t *stack_sp;
-	size_t stack_mallocc;
-	size_t stack_freec;
-};
-
 static bool stack_in_bounds_left(stack_allocator *a, void *p) {
 	return p >= (void *)a->stack_heap;
 }
@@ -28,42 +21,37 @@ static size_t stack_frame_down(size_t addr) {
 	return (addr / CHEAP_STACK_FRAME_SIZE) * CHEAP_STACK_FRAME_SIZE;
 }
 
-stack_allocator *stack_init(void) {
+stack_allocator stack_init(void) {
 	// Make space for the actual allocator object
-	stack_allocator *a =
-		mmap(NULL, sizeof(stack_allocator), PROT_READ | PROT_WRITE,
-			 MAP_ANON | MAP_PRIVATE, -1, 0);
-	if (a == MAP_FAILED) {
-		return NULL;
-	}
+	stack_allocator a;
+	a.stack_valid = 0;
 
 	// Create heap
 	uint8_t *h = mmap(NULL, CHEAP_STACK_SIZE, PROT_READ | PROT_WRITE,
 					  MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (h == MAP_FAILED) {
-		munmap(a, sizeof(stack_allocator));
-		return NULL;
+		return a;
 	}
 
 	// Init heap data
-	a->stack_heap = h;
-	a->stack_sp = h;
-	a->stack_mallocc = 0;
-	a->stack_freec = 0;
+	a.stack_valid = 1;
+	a.stack_heap = h;
+	a.stack_sp = h;
+	a.stack_mallocc = 0;
+	a.stack_freec = 0;
 
 	return a;
 }
 
 void stack_deinit(stack_allocator *a) {
-	if (!a) return;
+	if (!a || !a->stack_valid) return;
 
 	// Unmap our segments
 	munmap(a->stack_heap, CHEAP_STACK_SIZE);
-	munmap(a, sizeof(stack_allocator));
 }
 
 void *stack_malloc(stack_allocator *a, size_t size) {
-	if (!a) return NULL;
+	if (!a || !a->stack_valid) return NULL;
 
 	// Round up size to stay aligned
 	if (size > SIZE_MAX - CHEAP_STACK_FRAME_SIZE + 1) return NULL;
@@ -82,7 +70,7 @@ void *stack_malloc(stack_allocator *a, size_t size) {
 }
 
 void stack_free(stack_allocator *a, void *ptr) {
-	if (!a) return;
+	if (!a || !a->stack_valid) return;
 	if (!ptr) return;
 
 	// Check bounds
@@ -94,11 +82,11 @@ void stack_free(stack_allocator *a, void *ptr) {
 }
 
 size_t stack_malloc_count(stack_allocator *a) {
-	if (!a) return 0;
+	if (!a || !a->stack_valid) return 0;
 	return a->stack_mallocc;
 }
 
 size_t stack_free_count(stack_allocator *a) {
-	if (!a) return 0;
+	if (!a || !a->stack_valid) return 0;
 	return a->stack_freec;
 }

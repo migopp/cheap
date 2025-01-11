@@ -32,11 +32,11 @@ int mf(arena_allocator *a) {
 
 void bench_type(AllocatorType ty, bench_routine r) {
 	// Init allocator
-	arena_allocator *a = arena_init(ty);
+	arena_allocator a = arena_init(ty);
 
 	// Time routine
 	clock_t b_t = clock();
-	int rc = r(a);
+	int rc = r(&a);
 	clock_t e_t = clock();
 	double t = ((double)(e_t - b_t)) / CLOCKS_PER_SEC;
 
@@ -44,7 +44,7 @@ void bench_type(AllocatorType ty, bench_routine r) {
 	printf("%d: %f %d\n", ty, t, rc);
 
 	// Deinit allocator
-	arena_deinit(a);
+	arena_deinit(&a);
 }
 
 void bench_with(bench_routine r) {
