@@ -66,11 +66,11 @@ void *stack_malloc(stack_allocator *a, size_t size) {
 	if (!a) return NULL;
 
 	// Round up size to stay aligned
-	if (size > SIZE_T_MAX - CHEAP_STACK_FRAME_SIZE + 1) return NULL;
+	if (size > SIZE_MAX - CHEAP_STACK_FRAME_SIZE + 1) return NULL;
 	size = stack_frame_down(size + CHEAP_STACK_FRAME_SIZE - 1);
 
 	// Check for space (and pointer overflow!)
-	if ((uintptr_t)a->stack_sp > (SIZE_T_MAX - size) ||
+	if ((uintptr_t)a->stack_sp > (SIZE_MAX - size) ||
 		!stack_in_bounds_right(a, a->stack_sp + size))
 		return NULL;
 

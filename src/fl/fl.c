@@ -102,7 +102,7 @@ void *fl_malloc(fl_allocator *a, size_t size) {
 	if (!a) return NULL;
 
 	// Round up size to stay aligned
-	if (size > SIZE_T_MAX - CHEAP_FL_FRAME_SIZE + 1) return NULL;
+	if (size > SIZE_MAX - CHEAP_FL_FRAME_SIZE + 1) return NULL;
 	size = fl_frame_down(size + CHEAP_FL_FRAME_SIZE - 1);
 
 	// Nothing in free list

@@ -131,7 +131,7 @@ buddy_allocator *buddy_init(void) {
 	a->buddy_freec = 0;
 
 	// Ensure buddy metadata is zero-initialized
-	bzero(a->buddy_md, CHEAP_BUDDY_BLOCKS);
+	memset(a->buddy_md, 0, CHEAP_BUDDY_BLOCKS);
 
 	return a;
 }

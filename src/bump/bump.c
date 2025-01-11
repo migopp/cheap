@@ -52,13 +52,13 @@ void *bump_malloc(bump_allocator *a, size_t size) {
 	if (!a) return NULL;
 
 	// Round up size to stay aligned
-	if (size > SIZE_T_MAX - CHEAP_BUMP_FRAME_SIZE + 1) return NULL;
+	if (size > SIZE_MAX - CHEAP_BUMP_FRAME_SIZE + 1) return NULL;
 	size = bump_frame_down(size + CHEAP_BUMP_FRAME_SIZE - 1);
 
 	// Alas, for the bump allocator this comes too soon!
 	//
 	// But, first ensure the new idx doesn't overflow
-	if (a->bmp_idx <= SIZE_T_MAX - size && a->bmp_idx + size > CHEAP_BUMP_SIZE)
+	if (a->bmp_idx <= SIZE_MAX - size && a->bmp_idx + size > CHEAP_BUMP_SIZE)
 		return NULL;
 
 	// Bump it.
