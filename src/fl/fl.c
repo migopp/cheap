@@ -1,4 +1,5 @@
 #include "fl.h"
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -36,10 +37,6 @@ struct fl_allocator {
 
 static size_t fl_frame_down(size_t addr) {
 	return (addr / CHEAP_FL_FRAME_SIZE) * CHEAP_FL_FRAME_SIZE;
-}
-
-static size_t fl_frame_up(size_t addr) {
-	return fl_frame_down(addr + CHEAP_FL_FRAME_SIZE - 1);
 }
 
 static bool fl_in_bounds_left(fl_allocator *f, void *p) {
@@ -104,8 +101,9 @@ void fl_deinit(fl_allocator *a) {
 void *fl_malloc(fl_allocator *a, size_t size) {
 	if (!a) return NULL;
 
-	// Align size to 8B
-	size = fl_frame_up(size);
+	// Round up size to stay aligned
+	if (size > SIZE_T_MAX - CHEAP_FL_FRAME_SIZE + 1) return NULL;
+	size = fl_frame_down(size + CHEAP_FL_FRAME_SIZE - 1);
 
 	// Nothing in free list
 	if (a->fl_first == NULL) return NULL;

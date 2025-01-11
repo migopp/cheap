@@ -16,13 +16,6 @@ int main() {
 	ASSERT(f != NULL);
 	uint8_t *n = (uint8_t *)stack_malloc(a, sizeof(uint8_t));
 	ASSERT(n != NULL);
-	// If we bump, consecutive allocations should be
-	// neighboring
-	//
-	// So there should be 1 byte between `f` and `n`
-	if (f != n - 1) {
-		fprintf(stderr, "%p != %p - 1\n", f, n);
-	}
 
 	// Free the first allocation
 	//

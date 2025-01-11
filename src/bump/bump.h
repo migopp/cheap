@@ -4,6 +4,7 @@
 
 // Settings
 #define CHEAP_BUMP_SIZE (1 << 20)
+#define CHEAP_BUMP_FRAME_SIZE 8
 
 typedef struct bump_allocator bump_allocator;
 

@@ -1,4 +1,5 @@
 #include "bump.h"
+#include <limits.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -9,6 +10,10 @@ struct bump_allocator {
 	size_t bmp_idx;
 	size_t bmp_mallocc;
 };
+
+static size_t bump_frame_down(size_t addr) {
+	return (addr / CHEAP_BUMP_FRAME_SIZE) * CHEAP_BUMP_FRAME_SIZE;
+}
 
 bump_allocator *bump_init(void) {
 	// Make space for the actual allocator object
@@ -46,8 +51,15 @@ void bump_deinit(bump_allocator *a) {
 void *bump_malloc(bump_allocator *a, size_t size) {
 	if (!a) return NULL;
 
+	// Round up size to stay aligned
+	if (size > SIZE_T_MAX - CHEAP_BUMP_FRAME_SIZE + 1) return NULL;
+	size = bump_frame_down(size + CHEAP_BUMP_FRAME_SIZE - 1);
+
 	// Alas, for the bump allocator this comes too soon!
-	if (a->bmp_idx + size > CHEAP_BUMP_SIZE) return NULL;
+	//
+	// But, first ensure the new idx doesn't overflow
+	if (a->bmp_idx <= SIZE_T_MAX - size && a->bmp_idx + size > CHEAP_BUMP_SIZE)
+		return NULL;
 
 	// Bump it.
 	void *ptr = (void *)&a->bmp_heap[a->bmp_idx];

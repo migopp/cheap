@@ -4,6 +4,7 @@
 
 // Settings
 #define CHEAP_STACK_SIZE (1 << 20)
+#define CHEAP_STACK_FRAME_SIZE 8
 
 typedef struct stack_allocator stack_allocator;
 
